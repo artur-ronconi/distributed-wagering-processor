@@ -30,11 +30,36 @@ services:
     volumes:
       - ./docker/localstack/init-sqs.sh:/etc/localstack/init/ready.d/init-sqs.sh:ro
     healthcheck:
-      # healthy only after the init script created every queue
-      test: ["CMD-SHELL", "awslocal sqs get-queue-url --queue-name wagering-events.fifo >/dev/null 2>&1"]
+      # healthy only after the init script created every queue (the test queues are created last)
+      test: ["CMD-SHELL", "awslocal sqs get-queue-url --queue-name wagering-events-test.fifo >/dev/null 2>&1"]
       interval: 3s
       timeout: 5s
       retries: 40
+
+  app:
+    build: .
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://wagering:wagering@postgres:5432/wagering
+      AWS_REGION: us-east-1
+      AWS_ENDPOINT_URL: http://localstack:4566
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      MIGRATIONS_RUN_ON_BOOT: "true"
+      LOG_LEVEL: info
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/health/ready >/dev/null 2>&1 || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+    stop_grace_period: 30s
 
 volumes:
   postgres-data:
