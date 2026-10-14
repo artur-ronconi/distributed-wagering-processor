@@ -1,0 +1,26 @@
+import { MoneyProps } from "../../domain/money/money.props";
+import { WagerTransactionAggregate } from "../../domain/wager-transaction/wager-transaction.aggregate-root";
+import { EventContext, IntegrationEvent } from "./integration-event";
+import { toWagerTransactionEventData, WagerTransactionEventData } from "./wager-transaction.event-data";
+
+interface WagerTransactionProcessedData extends WagerTransactionEventData {
+  referenceTransactionId?: string;
+  balance: MoneyProps; // observed balance after processing
+}
+
+class WagerTransactionProcessed extends IntegrationEvent<WagerTransactionProcessedData> {
+  readonly eventType = "WagerTransactionProcessed";
+  readonly version = 1;
+
+  static from(tx: WagerTransactionAggregate, ctx: EventContext) {
+    return new WagerTransactionProcessed(
+      IntegrationEvent.envelope(tx.id.value, ctx, {
+        ...toWagerTransactionEventData(tx),
+        referenceTransactionId: tx.referenceTransactionId?.value,
+        balance: tx.observedBalance!.toJSON(), // always set by markProcessed
+      }),
+    );
+  }
+}
+
+export { WagerTransactionProcessed, WagerTransactionProcessedData };
