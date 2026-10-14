@@ -2,7 +2,7 @@ import { forwardRef, Module } from "@nestjs/common";
 
 import { MessagingModule } from "../messaging/messaging.module";
 import { WalletModule } from "../wallet/wallet.module";
-import { WAGER_TRANSACTION_REPOSITORY } from "./domain/services/wager-transaction.repository";
+import { WAGER_TRANSACTION_REPOSITORY } from "./domain/interfaces/wager-transaction.repository";
 import { GetProviderWagerTransactionUseCase } from "./domain/usecases/get-provider-wager-transaction/get-provider-wager-transaction.usecase";
 import { GetWagerTransactionUseCase } from "./domain/usecases/get-wager-transaction/get-wager-transaction.usecase";
 import { WagerTransactionProcessor } from "./domain/usecases/process-wager-transaction/wager-transaction.processor";

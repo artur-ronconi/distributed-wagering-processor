@@ -1,5 +1,5 @@
 import { DateValueObject, IdValueObject } from "ddd-tool-kit";
-import { MoneyValueObject } from "../../../modules/wallet/domain/aggregate/value-objects/money/money.value-object";
+import { MoneyValueObject } from "../../modules/wallet/domain/aggregate/value-objects/money/money.value-object";
 
 /** Values read from the database were validated when written; a failure here is data corruption. */
 const id = (value: string): IdValueObject => {

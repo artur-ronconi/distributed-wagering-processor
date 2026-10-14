@@ -2,10 +2,10 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { DateValueObject } from "ddd-tool-kit";
 
 import { APP_CONFIG, type AppConfig } from "../../../../../config/app-config";
-import { METRICS, type Metrics } from "../../../../../shared/services/metrics.service";
-import { UNIT_OF_WORK, type UnitOfWork } from "../../../../../shared/services/unit-of-work.service";
-import { WAGER_TRANSACTION_REPOSITORY, type WagerTransactionRepository } from "../../services/wager-transaction.repository";
-import { WALLET_REPOSITORY, type WalletRepository } from "../../../../wallet/domain/services/wallet.repository";
+import { METRICS, type Metrics } from "../../../../../shared/interfaces/metrics.interface";
+import { UNIT_OF_WORK, type UnitOfWork } from "../../../../../shared/interfaces/unit-of-work.interface";
+import { WAGER_TRANSACTION_REPOSITORY, type WagerTransactionRepository } from "../../interfaces/wager-transaction.repository";
+import { WALLET_REPOSITORY, type WalletRepository } from "../../../../wallet/domain/interfaces/wallet.repository";
 import { WagerTransactionProcessor } from "../process-wager-transaction/wager-transaction.processor";
 import { FailureCode } from "../../../../../shared/domain/failure-code";
 

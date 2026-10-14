@@ -6,11 +6,11 @@ import { ConcurrencyConflictError } from "../../../../../shared/errors/concurren
 import { DuplicateKeyError } from "../../../../../shared/errors/duplicate-key.error";
 import { INVALID_ID } from "../../../../../shared/errors/common.errors";
 import { wagerPayloadHash } from "./wager-payload-hash";
-import { INBOX_MESSAGE_REPOSITORY, type InboxMessageRepository } from "../../../../messaging/domain/services/inbox-message.repository";
-import { METRICS, type Metrics } from "../../../../../shared/services/metrics.service";
-import { UNIT_OF_WORK, type UnitOfWork } from "../../../../../shared/services/unit-of-work.service";
-import { WAGER_TRANSACTION_REPOSITORY, type WagerTransactionRepository } from "../../services/wager-transaction.repository";
-import { WALLET_REPOSITORY, type WalletRepository } from "../../../../wallet/domain/services/wallet.repository";
+import { INBOX_MESSAGE_REPOSITORY, type InboxMessageRepository } from "../../../../messaging/domain/interfaces/inbox-message.repository";
+import { METRICS, type Metrics } from "../../../../../shared/interfaces/metrics.interface";
+import { UNIT_OF_WORK, type UnitOfWork } from "../../../../../shared/interfaces/unit-of-work.interface";
+import { WAGER_TRANSACTION_REPOSITORY, type WagerTransactionRepository } from "../../interfaces/wager-transaction.repository";
+import { WALLET_REPOSITORY, type WalletRepository } from "../../../../wallet/domain/interfaces/wallet.repository";
 import { AbortTransaction, failureFrom } from "../../../../../shared/errors/service-failure";
 import { WagerTransactionProcessor } from "../process-wager-transaction/wager-transaction.processor";
 import { toResultView, type WagerTransactionResultView } from "../../mappers/wager-transaction-view.mapper";

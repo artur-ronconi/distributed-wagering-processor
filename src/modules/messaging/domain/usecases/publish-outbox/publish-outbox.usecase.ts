@@ -2,10 +2,10 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { DateValueObject } from "ddd-tool-kit";
 
 import { APP_CONFIG, type AppConfig } from "../../../../../config/app-config";
-import { EVENT_PUBLISHER, type EventPublisher } from "../../services/event-publisher.service";
-import { METRICS, type Metrics } from "../../../../../shared/services/metrics.service";
-import { OUTBOX_MESSAGE_REPOSITORY, type OutboxMessageRepository } from "../../services/outbox-message.repository";
-import { UNIT_OF_WORK, type UnitOfWork } from "../../../../../shared/services/unit-of-work.service";
+import { EVENT_PUBLISHER, type EventPublisher } from "../../interfaces/event-publisher.interface";
+import { METRICS, type Metrics } from "../../../../../shared/interfaces/metrics.interface";
+import { OUTBOX_MESSAGE_REPOSITORY, type OutboxMessageRepository } from "../../interfaces/outbox-message.repository";
+import { UNIT_OF_WORK, type UnitOfWork } from "../../../../../shared/interfaces/unit-of-work.interface";
 
 /**
  * Worker use case: publishes due outbox rows. Rows are locked with FOR UPDATE SKIP LOCKED, so N

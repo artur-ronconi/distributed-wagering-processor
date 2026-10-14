@@ -2,10 +2,10 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { type IError, IdValueObject, Output } from "ddd-tool-kit";
 
 import { INVALID_ID } from "../../../../../shared/errors/common.errors";
-import { LEDGER_RECONCILIATION_QUERY, type LedgerReconciliationQuery } from "../../services/ledger-reconciliation.query";
-import { METRICS, type Metrics } from "../../../../../shared/services/metrics.service";
-import { UNIT_OF_WORK, type UnitOfWork } from "../../../../../shared/services/unit-of-work.service";
-import { WALLET_REPOSITORY, type WalletRepository } from "../../services/wallet.repository";
+import { LEDGER_RECONCILIATION_QUERY, type LedgerReconciliationQuery } from "../../interfaces/ledger-reconciliation.query";
+import { METRICS, type Metrics } from "../../../../../shared/interfaces/metrics.interface";
+import { UNIT_OF_WORK, type UnitOfWork } from "../../../../../shared/interfaces/unit-of-work.interface";
+import { WALLET_REPOSITORY, type WalletRepository } from "../../interfaces/wallet.repository";
 import { failureFrom } from "../../../../../shared/errors/service-failure";
 import { type MoneyProps } from "../../aggregate/value-objects/money/money.props";
 import { MoneyValueObject } from "../../aggregate/value-objects/money/money.value-object";

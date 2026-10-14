@@ -1,8 +1,8 @@
 import { Module } from "@nestjs/common";
 
-import { EVENT_PUBLISHER } from "./domain/services/event-publisher.service";
-import { INBOX_MESSAGE_REPOSITORY } from "./domain/services/inbox-message.repository";
-import { OUTBOX_MESSAGE_REPOSITORY } from "./domain/services/outbox-message.repository";
+import { EVENT_PUBLISHER } from "./domain/interfaces/event-publisher.interface";
+import { INBOX_MESSAGE_REPOSITORY } from "./domain/interfaces/inbox-message.repository";
+import { OUTBOX_MESSAGE_REPOSITORY } from "./domain/interfaces/outbox-message.repository";
 import { PublishOutboxUseCase } from "./domain/usecases/publish-outbox/publish-outbox.usecase";
 import { MikroOrmInboxMessageRepository } from "./infrastructure/database/repositories/mikro-orm.inbox-message.repository";
 import { MikroOrmOutboxMessageRepository } from "./infrastructure/database/repositories/mikro-orm.outbox-message.repository";

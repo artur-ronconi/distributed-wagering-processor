@@ -1,4 +1,4 @@
-import { type LedgerCursor } from "../../services/wallet-ledger.query";
+import { type LedgerCursor } from "../../interfaces/wallet-ledger.query";
 
 /** Opaque, stable cursor: base64url of {"c": createdAt ISO, "i": id}. Clients must not parse it. */
 const encodeLedgerCursor = (cursor: LedgerCursor): string =>

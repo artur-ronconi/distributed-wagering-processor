@@ -1,8 +1,8 @@
 import { type IBidirectionalMapper } from "ddd-tool-kit";
 
-import { WalletAggregate } from "../../../domain/aggregate/aggregate-root/wallet.aggregate-root";
-import { type IWalletRow } from "../schemas/wallet.schema";
-import { date, id, money } from "../../../../../shared/infrastructure/database/mapping.helpers";
+import { WalletAggregate } from "../aggregate/aggregate-root/wallet.aggregate-root";
+import { type IWalletRow } from "../../infrastructure/database/schemas/wallet.schema";
+import { date, id, money } from "../../../../shared/domain/mapping.helpers";
 
 class WalletMapper implements IBidirectionalMapper<IWalletRow, WalletAggregate> {
   toRightSide(row: IWalletRow): WalletAggregate {

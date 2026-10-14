@@ -13,8 +13,8 @@ import { AllExceptionsFilter } from "./presentation/http/all-exceptions.filter";
 import { AuthGuard } from "./presentation/http/auth.guard";
 import { HttpMetricsInterceptor } from "./presentation/http/http-metrics.interceptor";
 import { createValidationPipe } from "./presentation/http/validation.pipe";
-import { METRICS } from "./services/metrics.service";
-import { UNIT_OF_WORK } from "./services/unit-of-work.service";
+import { METRICS } from "./interfaces/metrics.interface";
+import { UNIT_OF_WORK } from "./interfaces/unit-of-work.interface";
 
 /** Shared kernel available to every module: config, transactions, SQS client, metrics, health and HTTP concerns. */
 @Global()

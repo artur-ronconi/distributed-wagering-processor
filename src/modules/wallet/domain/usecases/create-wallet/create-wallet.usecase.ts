@@ -3,10 +3,10 @@ import { type IError, IdValueObject, Output, throwFailOutput } from "ddd-tool-ki
 
 import { DuplicateKeyError } from "../../../../../shared/errors/duplicate-key.error";
 import { canonicalize, sha256 } from "../../../../../shared/utils/canonical-hash";
-import { METRICS, type Metrics } from "../../../../../shared/services/metrics.service";
-import { UNIT_OF_WORK, type UnitOfWork } from "../../../../../shared/services/unit-of-work.service";
-import { WAGER_TRANSACTION_REPOSITORY, type WagerTransactionRepository } from "../../../../wager-transaction/domain/services/wager-transaction.repository";
-import { WALLET_REPOSITORY, type WalletRepository } from "../../services/wallet.repository";
+import { METRICS, type Metrics } from "../../../../../shared/interfaces/metrics.interface";
+import { UNIT_OF_WORK, type UnitOfWork } from "../../../../../shared/interfaces/unit-of-work.interface";
+import { WAGER_TRANSACTION_REPOSITORY, type WagerTransactionRepository } from "../../../../wager-transaction/domain/interfaces/wager-transaction.repository";
+import { WALLET_REPOSITORY, type WalletRepository } from "../../interfaces/wallet.repository";
 import { failureFrom } from "../../../../../shared/errors/service-failure";
 import { WagerTransactionProcessor } from "../../../../wager-transaction/domain/usecases/process-wager-transaction/wager-transaction.processor";
 import { type WalletView, WalletViewMapper } from "../../mappers/wallet-view.mapper";

@@ -1,13 +1,13 @@
 import { type IBidirectionalMapper } from "ddd-tool-kit";
 
-import { FailureCode } from "../../../../../shared/domain/failure-code";
-import { WagerTransactionAggregate } from "../../../domain/aggregate/aggregate-root/wager-transaction.aggregate-root";
+import { FailureCode } from "../../../../shared/domain/failure-code";
+import { WagerTransactionAggregate } from "../aggregate/aggregate-root/wager-transaction.aggregate-root";
 import {
   WagerTransactionKind,
   WagerTransactionStatus,
-} from "../../../domain/aggregate/aggregate-root/wager-transaction.enums";
-import { type IWagerTransactionRow } from "../schemas/wager-transaction.schema";
-import { date, id, money } from "../../../../../shared/infrastructure/database/mapping.helpers";
+} from "../aggregate/aggregate-root/wager-transaction.enums";
+import { type IWagerTransactionRow } from "../../infrastructure/database/schemas/wager-transaction.schema";
+import { date, id, money } from "../../../../shared/domain/mapping.helpers";
 
 class WagerTransactionMapper implements IBidirectionalMapper<IWagerTransactionRow, WagerTransactionAggregate> {
   toRightSide(row: IWagerTransactionRow): WagerTransactionAggregate {

@@ -3,13 +3,13 @@ import { EntityManager } from "@mikro-orm/postgresql";
 import { Injectable } from "@nestjs/common";
 import { IdValueObject } from "ddd-tool-kit";
 
-import { type WagerTransactionRepository } from "../../../domain/services/wager-transaction.repository";
+import { type WagerTransactionRepository } from "../../../domain/interfaces/wager-transaction.repository";
 import { WagerTransactionAggregate } from "../../../domain/aggregate/aggregate-root/wager-transaction.aggregate-root";
 import {
   WagerTransactionKind,
   WagerTransactionStatus,
 } from "../../../domain/aggregate/aggregate-root/wager-transaction.enums";
-import { WagerTransactionMapper } from "../mappers/wager-transaction.mapper";
+import { WagerTransactionMapper } from "../../../domain/mappers/wager-transaction.mapper";
 import { WagerTransactionSchema } from "../schemas/wager-transaction.schema";
 
 @Injectable()

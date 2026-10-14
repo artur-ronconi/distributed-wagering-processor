@@ -1,8 +1,8 @@
 import { type IBidirectionalMapper } from "ddd-tool-kit";
 
-import { OutboxMessageAggregate } from "../../../domain/aggregate/aggregate-root/outbox-message/outbox-message.aggregate-root";
-import { type IOutboxMessageRow } from "../schemas/outbox-message.schema";
-import { date, id } from "../../../../../shared/infrastructure/database/mapping.helpers";
+import { OutboxMessageAggregate } from "../aggregate/aggregate-root/outbox-message/outbox-message.aggregate-root";
+import { type IOutboxMessageRow } from "../../infrastructure/database/schemas/outbox-message.schema";
+import { date, id } from "../../../../shared/domain/mapping.helpers";
 
 class OutboxMessageMapper implements IBidirectionalMapper<IOutboxMessageRow, OutboxMessageAggregate> {
   toRightSide(row: IOutboxMessageRow): OutboxMessageAggregate {

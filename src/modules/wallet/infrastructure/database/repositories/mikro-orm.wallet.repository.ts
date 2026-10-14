@@ -4,10 +4,10 @@ import { Injectable } from "@nestjs/common";
 import { IdValueObject } from "ddd-tool-kit";
 
 import { ConcurrencyConflictError } from "../../../../../shared/errors/concurrency-conflict.error";
-import { type WalletRepository } from "../../../domain/services/wallet.repository";
+import { type WalletRepository } from "../../../domain/interfaces/wallet.repository";
 import { WalletAggregate } from "../../../domain/aggregate/aggregate-root/wallet.aggregate-root";
-import { WalletLedgerEntryMapper } from "../mappers/wallet-ledger-entry.mapper";
-import { WalletMapper } from "../mappers/wallet.mapper";
+import { WalletLedgerEntryMapper } from "../../../domain/mappers/wallet-ledger-entry.mapper";
+import { WalletMapper } from "../../../domain/mappers/wallet.mapper";
 import { WalletLedgerEntrySchema } from "../schemas/wallet-ledger-entry.schema";
 import { WalletSchema } from "../schemas/wallet.schema";
 

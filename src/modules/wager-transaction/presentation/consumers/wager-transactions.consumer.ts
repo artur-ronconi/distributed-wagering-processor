@@ -10,7 +10,7 @@ import { Inject, Injectable, Logger, type OnApplicationBootstrap, type OnApplica
 
 import { APP_CONFIG, type AppConfig } from "../../../../config/app-config";
 import { sha256 } from "../../../../shared/utils/canonical-hash";
-import { METRICS, type Metrics } from "../../../../shared/services/metrics.service";
+import { METRICS, type Metrics } from "../../../../shared/interfaces/metrics.interface";
 import { SubmitWagerTransactionUseCase } from "../../domain/usecases/submit-wager-transaction/submit-wager-transaction.usecase";
 import { type ISubmitWagerMessageOutput } from "../../domain/usecases/submit-wager-transaction/submit-wager-transaction.output";
 import { InboxMessageAggregate } from "../../../messaging/domain/aggregate/aggregate-root/inbox-message/inbox-message.aggregate-root";

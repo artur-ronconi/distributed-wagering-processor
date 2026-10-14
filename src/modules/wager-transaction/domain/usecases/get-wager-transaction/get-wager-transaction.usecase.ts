@@ -2,8 +2,8 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { type IError, IdValueObject, Output } from "ddd-tool-kit";
 
 import { INVALID_ID } from "../../../../../shared/errors/common.errors";
-import { UNIT_OF_WORK, type UnitOfWork } from "../../../../../shared/services/unit-of-work.service";
-import { WAGER_TRANSACTION_REPOSITORY, type WagerTransactionRepository } from "../../services/wager-transaction.repository";
+import { UNIT_OF_WORK, type UnitOfWork } from "../../../../../shared/interfaces/unit-of-work.interface";
+import { WAGER_TRANSACTION_REPOSITORY, type WagerTransactionRepository } from "../../interfaces/wager-transaction.repository";
 import { failureFrom } from "../../../../../shared/errors/service-failure";
 import { type WagerTransactionView, WagerTransactionViewMapper } from "../../mappers/wager-transaction-view.mapper";
 import { TRANSACTION_NOT_FOUND } from "../../aggregate/aggregate-root/wager-transaction.errors";

@@ -3,9 +3,9 @@ import { HttpStatus, type IError, IdValueObject, Output } from "ddd-tool-kit";
 
 import { INVALID_ID } from "../../../../../shared/errors/common.errors";
 import { decodeLedgerCursor, encodeLedgerCursor } from "./ledger-cursor";
-import { UNIT_OF_WORK, type UnitOfWork } from "../../../../../shared/services/unit-of-work.service";
-import { type LedgerCursor, type LedgerEntryView, WALLET_LEDGER_QUERY, type WalletLedgerQuery } from "../../services/wallet-ledger.query";
-import { WALLET_REPOSITORY, type WalletRepository } from "../../services/wallet.repository";
+import { UNIT_OF_WORK, type UnitOfWork } from "../../../../../shared/interfaces/unit-of-work.interface";
+import { type LedgerCursor, type LedgerEntryView, WALLET_LEDGER_QUERY, type WalletLedgerQuery } from "../../interfaces/wallet-ledger.query";
+import { WALLET_REPOSITORY, type WalletRepository } from "../../interfaces/wallet.repository";
 import { failureFrom } from "../../../../../shared/errors/service-failure";
 import { type IDomainError } from "../../../../../shared/domain/domain-error";
 import { FailureCode } from "../../../../../shared/domain/failure-code";

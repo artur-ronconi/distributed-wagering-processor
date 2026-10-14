@@ -2,9 +2,9 @@ import { forwardRef, Module } from "@nestjs/common";
 
 import { MessagingModule } from "../messaging/messaging.module";
 import { WagerTransactionModule } from "../wager-transaction/wager-transaction.module";
-import { LEDGER_RECONCILIATION_QUERY } from "./domain/services/ledger-reconciliation.query";
-import { WALLET_LEDGER_QUERY } from "./domain/services/wallet-ledger.query";
-import { WALLET_REPOSITORY } from "./domain/services/wallet.repository";
+import { LEDGER_RECONCILIATION_QUERY } from "./domain/interfaces/ledger-reconciliation.query";
+import { WALLET_LEDGER_QUERY } from "./domain/interfaces/wallet-ledger.query";
+import { WALLET_REPOSITORY } from "./domain/interfaces/wallet.repository";
 import { CreateWalletUseCase } from "./domain/usecases/create-wallet/create-wallet.usecase";
 import { GetWalletLedgerUseCase } from "./domain/usecases/get-wallet-ledger/get-wallet-ledger.usecase";
 import { GetWalletUseCase } from "./domain/usecases/get-wallet/get-wallet.usecase";

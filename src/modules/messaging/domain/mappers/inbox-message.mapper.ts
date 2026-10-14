@@ -1,8 +1,8 @@
 import { type IBidirectionalMapper } from "ddd-tool-kit";
 
-import { InboxMessageAggregate } from "../../../domain/aggregate/aggregate-root/inbox-message/inbox-message.aggregate-root";
-import { type IInboxMessageRow } from "../schemas/inbox-message.schema";
-import { date, id } from "../../../../../shared/infrastructure/database/mapping.helpers";
+import { InboxMessageAggregate } from "../aggregate/aggregate-root/inbox-message/inbox-message.aggregate-root";
+import { type IInboxMessageRow } from "../../infrastructure/database/schemas/inbox-message.schema";
+import { date, id } from "../../../../shared/domain/mapping.helpers";
 
 class InboxMessageMapper implements IBidirectionalMapper<IInboxMessageRow, InboxMessageAggregate> {
   toRightSide(row: IInboxMessageRow): InboxMessageAggregate {

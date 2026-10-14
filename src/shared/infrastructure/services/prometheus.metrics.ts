@@ -2,7 +2,7 @@ import { MikroORM } from "@mikro-orm/postgresql";
 import { Injectable } from "@nestjs/common";
 import { collectDefaultMetrics, Counter, Gauge, Histogram, Registry } from "prom-client";
 
-import { type DuplicateSource, type Metrics, type RetrySource } from "../../services/metrics.service";
+import { type DuplicateSource, type Metrics, type RetrySource } from "../../interfaces/metrics.interface";
 
 /** prom-client implementation of the application Metrics port, exposed at GET /metrics. */
 @Injectable()

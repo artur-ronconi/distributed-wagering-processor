@@ -1,9 +1,9 @@
 import { EntityManager } from "@mikro-orm/postgresql";
 import { Injectable } from "@nestjs/common";
 
-import { type InboxMessageRepository } from "../../../domain/services/inbox-message.repository";
+import { type InboxMessageRepository } from "../../../domain/interfaces/inbox-message.repository";
 import { InboxMessageAggregate } from "../../../domain/aggregate/aggregate-root/inbox-message/inbox-message.aggregate-root";
-import { InboxMessageMapper } from "../mappers/inbox-message.mapper";
+import { InboxMessageMapper } from "../../../domain/mappers/inbox-message.mapper";
 import { InboxMessageSchema } from "../schemas/inbox-message.schema";
 
 @Injectable()

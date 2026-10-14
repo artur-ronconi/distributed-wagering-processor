@@ -1,7 +1,7 @@
 import { EntityManager } from "@mikro-orm/postgresql";
 import { Injectable } from "@nestjs/common";
 
-import { type LedgerCursor, type LedgerEntryView, type WalletLedgerQuery } from "../../../domain/services/wallet-ledger.query";
+import { type LedgerCursor, type LedgerEntryView, type WalletLedgerQuery } from "../../../domain/interfaces/wallet-ledger.query";
 import { LedgerDirection } from "../../../domain/aggregate/entities/wallet-ledger-entry/wallet-ledger-entry.props";
 
 interface LedgerRow {

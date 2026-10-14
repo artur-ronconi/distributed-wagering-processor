@@ -2,7 +2,7 @@ import { SendMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
 import { Inject, Injectable } from "@nestjs/common";
 
 import { APP_CONFIG, type AppConfig } from "../../../../config/app-config";
-import { type EventPublisher, type PublishableEvent } from "../../domain/services/event-publisher.service";
+import { type EventPublisher, type PublishableEvent } from "../../domain/interfaces/event-publisher.interface";
 import { QueueUrlResolver, SQS_CLIENT } from "../../../../shared/infrastructure/services/sqs.client";
 
 /**

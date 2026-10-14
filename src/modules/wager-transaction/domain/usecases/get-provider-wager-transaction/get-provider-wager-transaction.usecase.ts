@@ -1,8 +1,8 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { HttpStatus, type IError, Output } from "ddd-tool-kit";
 
-import { UNIT_OF_WORK, type UnitOfWork } from "../../../../../shared/services/unit-of-work.service";
-import { WAGER_TRANSACTION_REPOSITORY, type WagerTransactionRepository } from "../../services/wager-transaction.repository";
+import { UNIT_OF_WORK, type UnitOfWork } from "../../../../../shared/interfaces/unit-of-work.interface";
+import { WAGER_TRANSACTION_REPOSITORY, type WagerTransactionRepository } from "../../interfaces/wager-transaction.repository";
 import { failureFrom } from "../../../../../shared/errors/service-failure";
 import { type WagerTransactionView, WagerTransactionViewMapper } from "../../mappers/wager-transaction-view.mapper";
 import { type IDomainError } from "../../../../../shared/domain/domain-error";

@@ -2,8 +2,8 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { type IError, IdValueObject, Output } from "ddd-tool-kit";
 
 import { INVALID_ID } from "../../../../../shared/errors/common.errors";
-import { UNIT_OF_WORK, type UnitOfWork } from "../../../../../shared/services/unit-of-work.service";
-import { WALLET_REPOSITORY, type WalletRepository } from "../../services/wallet.repository";
+import { UNIT_OF_WORK, type UnitOfWork } from "../../../../../shared/interfaces/unit-of-work.interface";
+import { WALLET_REPOSITORY, type WalletRepository } from "../../interfaces/wallet.repository";
 import { failureFrom } from "../../../../../shared/errors/service-failure";
 import { type WalletView, WalletViewMapper } from "../../mappers/wallet-view.mapper";
 import { WALLET_NOT_FOUND } from "../../aggregate/aggregate-root/wallet.errors";

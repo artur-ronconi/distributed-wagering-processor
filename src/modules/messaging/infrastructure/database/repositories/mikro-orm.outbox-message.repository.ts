@@ -2,9 +2,9 @@ import { LockMode } from "@mikro-orm/core";
 import { EntityManager } from "@mikro-orm/postgresql";
 import { Injectable } from "@nestjs/common";
 
-import { type OutboxMessageRepository } from "../../../domain/services/outbox-message.repository";
+import { type OutboxMessageRepository } from "../../../domain/interfaces/outbox-message.repository";
 import { OutboxMessageAggregate } from "../../../domain/aggregate/aggregate-root/outbox-message/outbox-message.aggregate-root";
-import { OutboxMessageMapper } from "../mappers/outbox-message.mapper";
+import { OutboxMessageMapper } from "../../../domain/mappers/outbox-message.mapper";
 import { OutboxMessageSchema } from "../schemas/outbox-message.schema";
 
 @Injectable()

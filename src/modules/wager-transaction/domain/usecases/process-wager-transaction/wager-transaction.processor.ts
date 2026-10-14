@@ -6,8 +6,8 @@ import { WagerTransactionPendingReference } from "../../events/wager-transaction
 import { WagerTransactionProcessed } from "../../events/wager-transaction-processed.event";
 import { WagerTransactionRejected } from "../../events/wager-transaction-rejected.event";
 import { WalletBalanceChanged } from "../../../../wallet/domain/events/wallet-balance-changed.event";
-import { OUTBOX_MESSAGE_REPOSITORY, type OutboxMessageRepository } from "../../../../messaging/domain/services/outbox-message.repository";
-import { WAGER_TRANSACTION_REPOSITORY, type WagerTransactionRepository } from "../../services/wager-transaction.repository";
+import { OUTBOX_MESSAGE_REPOSITORY, type OutboxMessageRepository } from "../../../../messaging/domain/interfaces/outbox-message.repository";
+import { WAGER_TRANSACTION_REPOSITORY, type WagerTransactionRepository } from "../../interfaces/wager-transaction.repository";
 import { type IDomainError } from "../../../../../shared/domain/domain-error";
 import { FailureCode } from "../../../../../shared/domain/failure-code";
 import { OutboxMessageAggregate } from "../../../../messaging/domain/aggregate/aggregate-root/outbox-message/outbox-message.aggregate-root";
