@@ -4,7 +4,7 @@
 > _ORM: **MikroORM** (OLD_README §4). Prisma is out of scope._
 >
 > _Rules:_
-> _- The repository interface is a **port** in the application layer. The MikroORM implementation lives in infrastructure._
+> _- The repository interface lives in `domain/interfaces`. The MikroORM implementation lives in `infrastructure/database/repositories`._
 > _- **A repository never opens a transaction.** The service opens one through the `UnitOfWork` port, so inbox, transaction, wallet, ledger and outbox are committed together (OLD_README §6.5 and §11)._
 > _- No `read → calculate → update` without concurrency control (OLD_README §5.7). Lock the row (`findByIdForUpdate`) and/or update conditioned on `version`._
 > _- Only aggregate roots have a repository. Child entities are saved **through** the root's repository (e.g. `WalletRepository.save` also inserts the wallet's new ledger entries). For large append-only children, the aggregate holds only the **new** children; the repository inserts them and never updates, deletes or "replaces the children collection"._
@@ -44,7 +44,7 @@ const output = await this.uow.transactional(async () => {
 });
 ```
 
-## unit-of-work.port.ts (application)
+## src/shared/interfaces/unit-of-work.interface.ts
 ```ts
 interface TransactionOptions {
   isolation?: "READ COMMITTED" | "REPEATABLE READ" | "SERIALIZABLE"; // default: READ COMMITTED
@@ -58,7 +58,7 @@ interface UnitOfWork {
 export { UnitOfWork, TransactionOptions };
 ```
 
-## any.repository.ts (application port)
+## src/modules/<module>/domain/interfaces/any.repository.ts
 ```ts
 import { IdValueObject } from "ddd-tool-kit";
 import { AnyAggregate } from "../../domain/any/any.aggregate-root";
@@ -79,7 +79,7 @@ export { AnyRepository };
 ```ts
 import { IsolationLevel } from "@mikro-orm/core";
 import { EntityManager } from "@mikro-orm/postgresql";
-import { TransactionOptions, UnitOfWork } from "../../application/ports/unit-of-work.port";
+import type { TransactionOptions, UnitOfWork } from "../../interfaces/unit-of-work.interface";
 
 const ISOLATION: Record<NonNullable<TransactionOptions["isolation"]>, IsolationLevel> = {
   "READ COMMITTED": IsolationLevel.READ_COMMITTED,
@@ -109,7 +109,7 @@ import { LockMode } from "@mikro-orm/core";
 import { EntityManager } from "@mikro-orm/postgresql";
 import { IBidirectionalMapper, IdValueObject } from "ddd-tool-kit";
 
-import { AnyRepository } from "../../../application/ports/any.repository";
+import type { AnyRepository } from "../../../domain/interfaces/any.repository";
 import { AnySchema, IAnySchema } from "../schemas/any.schema";
 import { AnyAggregate } from "../../../domain/any/any.aggregate-root";
 import { ConcurrencyConflictError } from "../errors/concurrency-conflict.error";

@@ -1,7 +1,9 @@
 > _**Observation:**_  
 > _You will need to replace "Any" with the correct names when writing the files._
 >
-> _The mapper converts the MikroORM schema shape (`IAnySchema`, see @docs/files-patterns/schema.md) ⇄ the domain aggregate. It never imports `EntityManager` nor runs queries._
+> _Location: `src/modules/<module>/domain/mappers/any.mapper.ts`._
+>
+> _The mapper converts the MikroORM schema shape (`IAnySchema`, see @docs/files-patterns/schema.md) ⇄ the domain aggregate. The row shape is imported with `import type` only, so the domain has no runtime dependency on the infrastructure. It never imports `EntityManager` nor runs queries._
 >
 > _`toRightSide` (database → domain) uses **`rehydrate`**, never `create`: the state is already persisted and must not be revalidated (OLD_README §6.0)._
 >
@@ -15,10 +17,10 @@ import {
   IBidirectionalMapper,
 } from "ddd-tool-kit";
 
-import { IAnySchema } from "../schemas/any.schema";
-import { MoneyValueObject } from "../../../domain/money/money.value-object";
-import { AnyAggregate } from "../../../domain/any/any.aggregate-root";
-import { AnyValueObject } from "../../../domain/any/value-objects/any/any.value-object";
+import type { IAnySchema } from "../../infrastructure/database/schemas/any.schema";
+import { MoneyValueObject } from "../../../wallet/domain/aggregate/value-objects/money/money.value-object";
+import { AnyAggregate } from "../aggregate/aggregate-root/any.aggregate-root";
+import { AnyValueObject } from "../aggregate/value-objects/any/any.value-object";
 
 class AnyMapper implements IBidirectionalMapper<IAnySchema, AnyAggregate> {
   toRightSide(leftSide: IAnySchema): AnyAggregate {

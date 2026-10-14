@@ -97,7 +97,7 @@ src/modules/wallet/presentation/controllers/get-wallet-ledger.controller.ts
 src/modules/wallet/presentation/controllers/dtos/ledger.dto.ts
 src/modules/wallet/domain/usecases/get-wallet-ledger/get-wallet-ledger.usecase.ts
 src/modules/wallet/domain/usecases/get-wallet-ledger/ledger-cursor.ts        ← encode/decode do cursor
-src/modules/wallet/domain/services/wallet-ledger.query.ts                    ← porta de leitura (interface)
+src/modules/wallet/domain/interfaces/wallet-ledger.query.ts                    ← porta de leitura (interface)
 src/modules/wallet/infrastructure/database/queries/mikro-orm.wallet-ledger.query.ts
 ```
 

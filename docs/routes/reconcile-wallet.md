@@ -104,7 +104,7 @@ A divergência é um **resultado** da verificação, não um erro da requisiçã
 src/modules/wallet/presentation/controllers/reconcile-wallet.controller.ts
 src/modules/wallet/presentation/controllers/dtos/reconciliation.dto.ts
 src/modules/wallet/domain/usecases/reconcile-wallet/reconcile-wallet.usecase.ts
-src/modules/wallet/domain/services/ledger-reconciliation.query.ts            ← porta (interface)
+src/modules/wallet/domain/interfaces/ledger-reconciliation.query.ts            ← porta (interface)
 src/modules/wallet/infrastructure/database/queries/mikro-orm.ledger-reconciliation.query.ts
 ```
 

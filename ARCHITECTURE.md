@@ -31,11 +31,11 @@ Um único serviço NestJS. Cada processo pode ligar ou desligar quatro entradas:
 
 O código é organizado **por módulo** (`wallet`, `wager-transaction`, `messaging`) e, dentro de cada módulo, por camada:
 
-- `domain/` — aggregates (`aggregate-root`, `entities`, `value-objects`), eventos, mappers de visão, `services` (só interfaces) e `usecases`;
+- `domain/` — aggregates (`aggregate-root`, `entities`, `value-objects`), eventos, `mappers` (de visão e linha ⇄ aggregate; o formato da linha entra só como `import type`), `interfaces` (repositories, queries e services) e `usecases`;
 - `presentation/` — `controllers` (HTTP), `consumers` (SQS e worker de pendências) e `producers` (publisher da outbox);
-- `infrastructure/` — `database` (schemas, mappers linha ⇄ aggregate, repositories, queries) e `services` (implementações, como o publisher SQS).
+- `infrastructure/` — `database` (schemas, repositories, queries) e `services` (implementações, como o publisher SQS).
 
-O que é comum fica em `src/shared` (failure codes, erros, unit of work, SQS client, métricas, health, HTTP comum). As classes de aggregate são TypeScript puro sobre o `ddd-tool-kit`, sem NestJS e sem ORM. As dependências apontam para o domínio: a infraestrutura implementa as interfaces de `domain/services`. Cada módulo é um módulo Nest. `wallet` e `wager-transaction` dependem um do outro (criar uma wallet gera a transação interna OPENING; uma aposta mexe na wallet), resolvido com `forwardRef`.
+O que é comum fica em `src/shared` (failure codes, erros, unit of work, SQS client, métricas, health, HTTP comum). As classes de aggregate são TypeScript puro sobre o `ddd-tool-kit`, sem NestJS e sem ORM. As dependências apontam para o domínio: a infraestrutura implementa as interfaces de `domain/interfaces`. Cada módulo é um módulo Nest. `wallet` e `wager-transaction` dependem um do outro (criar uma wallet gera a transação interna OPENING; uma aposta mexe na wallet), resolvido com `forwardRef`.
 
 | Aggregate | Contém | Repository |
 |---|---|---|
@@ -62,7 +62,7 @@ O que é comum fica em `src/shared` (failure codes, erros, unit of work, SQS cli
 
 **MikroORM 6** (preferido pelo enunciado).
 
-- **`EntitySchema` na infraestrutura**, não decorators nas classes de domínio. Mappers bidirecionais convertem linha ⇄ aggregate.
+- **`EntitySchema` na infraestrutura**, não decorators nas classes de domínio. Mappers bidirecionais (em `domain/mappers`) convertem linha ⇄ aggregate.
 - **Escritas explícitas:** `em.insert`, `em.insertMany` e `em.nativeUpdate`, com leituras `disableIdentityMap`. Não uso o change tracking do Unit of Work do MikroORM para dados financeiros: cada transação faz exatamente os comandos SQL que estão no código, o que facilita provar o comportamento sob concorrência.
 - **`UnitOfWork` (porta) → `em.transactional()`**. O `EntityManager` injetado nos repositories resolve para o fork da transação corrente (`TransactionContext`). Quem abre a transação é o use case, nunca o repository. Toda transação começa com `SET LOCAL lock_timeout`.
 - **Tradução de erros:** violação de `UNIQUE` vira `DuplicateKeyError(constraint)`. Lock timeout, deadlock, serialization failure e falha de conexão viram `TransientInfrastructureError`, que a API responde como `503` e o consumer trata como "não dá ack".

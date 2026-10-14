@@ -19,13 +19,13 @@ Um único serviço NestJS (não é monorepo, não tem frontend).
 ```
 src/
   config/           → app-config, mikro-orm.config, lista de schemas (composição)
-  shared/           → kernel compartilhado: failure codes, erros, interfaces (unit of work, metrics),
+  shared/           → kernel compartilhado: failure codes, erros, interfaces/ (unit of work, metrics),
                       infra comum (migrations, SQS client, prometheus, health) e HTTP comum (filtro, guard, swagger)
   modules/
     wallet/             → wallet + money + wallet-ledger-entry
     wager-transaction/  → BET/WIN/LOSS/REFUND/ROLLBACK, processor, consumer SQS, worker de pendências
     messaging/          → inbox, outbox, eventos de integração, publisher
-      (cada módulo) domain/{aggregate/{aggregate-root,entities,value-objects},events,mappers,services,usecases}
+      (cada módulo) domain/{aggregate/{aggregate-root,entities,value-objects},events,mappers,interfaces,usecases}
                     presentation/{controllers,consumers,producers}
                     infrastructure/{database,services}
 test/
@@ -39,8 +39,8 @@ ARCHITECTURE.md     → decisões, trade-offs e limitações
 ```
 
 Regras da estrutura:
-- `domain/services` só tem **interfaces** (portas). As implementações ficam em `infrastructure/` (`database/` para repositories e queries, `services/` para o resto).
-- `domain/mappers` são mappers de visão (aggregate → resposta). Mappers do banco (linha ⇄ aggregate) ficam em `infrastructure/database/mappers`.
+- `domain/interfaces` só tem **interfaces** (repositories, queries e services). As implementações ficam em `infrastructure/` (`database/` para repositories e queries, `services/` para o resto).
+- `domain/mappers` tem **todos** os mappers: unidirecionais (aggregate → resposta) e bidirecionais (linha ⇄ aggregate). O formato da linha entra só como `import type`.
 - Cada módulo é um módulo Nest (`<modulo>.module.ts`). `SharedModule` é global. `wallet` ⇄ `wager-transaction` usam `forwardRef` (criar wallet gera a transação OPENING).
 
 ## Comandos

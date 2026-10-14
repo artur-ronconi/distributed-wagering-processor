@@ -131,9 +131,9 @@ src/
     wallet/              carteira, dinheiro (Money) e lançamentos do ledger
     wager-transaction/   BET/WIN/LOSS/REFUND/ROLLBACK: rota HTTP, consumer SQS, worker de pendências
     messaging/           inbox, outbox, eventos de integração e publicação no SQS
-      └─ cada módulo: domain/ (aggregate, events, mappers, services = interfaces, usecases)
+      └─ cada módulo: domain/ (aggregate, events, mappers, interfaces, usecases)
                       presentation/ (controllers, consumers, producers)
-                      infrastructure/ (database, services = implementações)
+                      infrastructure/ (database, services = implementações das interfaces)
 test/
   unit/  integration/  concurrency/
 docs/              requisitos condensados, um arquivo por domínio e por rota

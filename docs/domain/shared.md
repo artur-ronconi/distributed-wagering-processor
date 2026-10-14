@@ -22,7 +22,7 @@ src/
   shared/
     domain/                     domain-error.ts, failure-code.ts
     errors/                     erros de aplicação (transient, duplicate key, concurrency) e service-failure
-    services/                   interfaces: unit-of-work, metrics, service
+    interfaces/                 unit-of-work, metrics, service
     utils/                      canonical-hash.ts (JSON canônico + SHA-256)
     infrastructure/             database (unit of work, migrations, tradução de erros), services (prometheus, sqs client, health)
     presentation/               http (filtro, guard, pipe, correlation id), controllers (health, metrics), swagger
@@ -34,33 +34,34 @@ src/
           entities/             wallet-ledger-entry/ (entity, props, errors)
           value-objects/        money/ (value-object, props, errors)
         events/                 wallet-balance-changed.event.ts
-        mappers/                wallet-view.mapper.ts (aggregate → resposta)
-        services/               só interfaces: wallet.repository.ts, wallet-ledger.query.ts, ledger-reconciliation.query.ts
+        mappers/                wallet.mapper.ts, wallet-ledger-entry.mapper.ts (linha ⇄ aggregate), wallet-view.mapper.ts (aggregate → resposta)
+        interfaces/             só interfaces: wallet.repository.ts, wallet-ledger.query.ts, ledger-reconciliation.query.ts
         usecases/               create-wallet/, get-wallet/, get-wallet-ledger/, reconcile-wallet/
       presentation/controllers/ controllers HTTP + dtos/
-      infrastructure/database/  schemas/, mappers/ (linha ⇄ aggregate), repositories/, queries/
+      infrastructure/database/  schemas/, repositories/, queries/
     wager-transaction/
       domain/
         aggregate/aggregate-root/  wager-transaction.aggregate-root.ts, .enums.ts, .props.ts, .errors.ts
         events/                    wager-transaction-processed/rejected/pending-reference.event.ts
-        mappers/                   wager-transaction-view.mapper.ts
-        services/                  wager-transaction.repository.ts (interface)
+        mappers/                   wager-transaction.mapper.ts (linha ⇄ aggregate), wager-transaction-view.mapper.ts
+        interfaces/                wager-transaction.repository.ts
         usecases/                  submit-wager-transaction/, process-wager-transaction/ (processor), get-*, resolve-pending-references/
       presentation/
         controllers/               HTTP + dtos/
         consumers/                 wager-transactions.consumer.ts (SQS), pending-reference.consumer.ts
-      infrastructure/database/     schemas/, mappers/, repositories/
+      infrastructure/database/     schemas/, repositories/
     messaging/                     mecanismos técnicos: inbox, outbox e eventos de integração
       domain/
         aggregate/aggregate-root/  inbox-message/, outbox-message/ (+ outbox-event.interface.ts)
         events/                    integration-event.ts (classe abstrata base dos eventos)
-        services/                  interfaces: inbox/outbox repositories, event-publisher
+        mappers/                   inbox-message.mapper.ts, outbox-message.mapper.ts (linha ⇄ aggregate)
+        interfaces/                inbox/outbox repositories, event-publisher.interface.ts
         usecases/                  publish-outbox/
       presentation/producers/      outbox-publisher.producer.ts
-      infrastructure/              database/ (schemas, mappers, repositories), services/ (sqs-event.publisher.ts)
+      infrastructure/              database/ (schemas, repositories), services/ (sqs-event.publisher.ts)
 ```
 
-Os mappers de **visão** (aggregate → resposta) ficam em `domain/mappers`. Os mappers do **banco** (linha do MikroORM ⇄ aggregate) ficam em `infrastructure/database/mappers`, porque dependem do formato das tabelas.
+Todos os mappers ficam em `domain/mappers`: os de **visão** (aggregate → resposta) e os **bidirecionais** (linha do MikroORM ⇄ aggregate). Os bidirecionais conhecem o formato das tabelas só como **tipo** (`import type` da interface da linha), então o domínio não carrega nada da infraestrutura em tempo de execução.
 
 Cada módulo é um módulo Nest (`wallet.module.ts`, `wager-transaction.module.ts`, `messaging.module.ts`). O `SharedModule` é global.
 
