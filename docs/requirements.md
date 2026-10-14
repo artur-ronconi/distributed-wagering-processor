@@ -105,7 +105,7 @@ The queue is a **second entry point** parallel to HTTP, only for submitting wage
 |---|---|
 | `wager-transactions.fifo` | input of `WagerTransactionRequested` messages (`MessageGroupId = walletId` as an optimization only) |
 | `wager-transactions-dlq.fifo` | permanent failures and messages over `maxReceiveCount` (redrive policy) |
-| `wagering-events` (our name) | output: integration events published by the outbox worker |
+| `wagering-events.fifo` (our name) | output: integration events published by the outbox worker (`MessageGroupId = aggregateId`, `MessageDeduplicationId = eventId`) |
 
 | Service result for a message | Action |
 |---|---|
@@ -212,7 +212,7 @@ The app runs TypeScript directly on Bun, so the `@nestjs/swagger` CLI compiler p
 8. Missing reference → persist as `PENDING_REFERENCE`; a scheduled worker retries with exponential backoff until a limit/TTL, then `REJECTED` with `REFERENCE_NOT_FOUND` and the matching event.
 9. A reversal that would make the balance negative is rejected with `REVERSAL_WOULD_OVERDRAW`, **different** from a bet's `INSUFFICIENT_FUNDS`.
 10. Every rejection carries a stable, machine-readable `failureCode` (taxonomy in @docs/domain/shared.md).
-11. Open interpretation to document: whether one `BET` may suffer both a `REFUND` and a `ROLLBACK` (rule 4 says "same kind"; blocking any second reversal is the safer reading).
+11. Interpretation adopted (documented in `ARCHITECTURE.md`): a reference is reverted **at most once in total** — a `BET` that was refunded cannot also be rolled back (rule 4 literally says "same kind", which would allow crediting it twice).
 
 ## Idempotency
 - The `Idempotency-Key` header is required and is the source of truth. Default: `"{providerId}:{externalTransactionId}"`. Via SQS it comes in `data.idempotencyKey`.
@@ -315,7 +315,7 @@ OutboxMessageAggregate (messaging)
 ## Persistence guarantees enforced by the database (OLD_README §5.9)
 - Money columns: `numeric(19,2)` + `char(3)`. Our ids: `char(16)`.
 - `wallets`: `UNIQUE (player_id, currency)`, `CHECK (balance_amount >= 0)`, `CHECK (version >= 1)`.
-- `wager_transactions`: `UNIQUE (idempotency_key)`, `UNIQUE (provider_id, external_transaction_id)`, `CHECK` of kind/status, `CHECK` reference required for `REFUND`/`ROLLBACK`, `CHECK` `failure_code` when `REJECTED`, partial unique index `(reference_transaction_id, kind) WHERE status = 'PROCESSED' AND kind IN ('REFUND','ROLLBACK')`, index for due `PENDING_REFERENCE` rows.
+- `wager_transactions`: `UNIQUE (idempotency_key)`, `UNIQUE (provider_id, external_transaction_id)`, `CHECK` of kind/status, `CHECK` reference required for `REFUND`/`ROLLBACK`, `CHECK` `failure_code` when `REJECTED`, partial unique index `(reference_transaction_id) WHERE status = 'PROCESSED' AND kind IN ('REFUND','ROLLBACK')` (one reversal per reference, any kind), index for due `PENDING_REFERENCE` rows.
 - `wallet_ledger_entries`: `UNIQUE (transaction_id, wallet_id)`, arithmetic `CHECK`, amounts `>= 0` / `> 0`, `UPDATE`/`DELETE` blocked by an append-only trigger, FK to `wager_transactions` **`DEFERRABLE INITIALLY DEFERRED`** (insert order inside the transaction does not matter), index `(wallet_id, created_at desc, id desc)` for pagination.
 - `inbox_messages`: `UNIQUE (consumer_name, message_id)`.
 - `outbox_messages`: partial index on `next_attempt_at WHERE published_at IS NULL`.
@@ -323,7 +323,7 @@ OutboxMessageAggregate (messaging)
 
 # Observability (OLD_README §12)
 - Structured JSON logs with `correlationId`, `messageId`, `transactionId`, `walletId`, `providerId`. No sensitive data nor full financial payloads.
-- Metrics: transactions by status, detected duplicates (inbox hits and idempotent replays, separately), retries, DLQ messages, lock conflicts, outbox lag (`now() - min(occurred_at)` of unpublished rows), processing latency, `wallet_reconciliation_mismatch_total`.
+- Metrics: transactions by status, detected duplicates (inbox hits and idempotent replays, separately), retries, DLQ messages, lock conflicts, outbox lag (`now() - min(occurred_at)` of unpublished rows), processing latency, `wagering_reconciliation_mismatches_total` (all metrics exposed at `GET /metrics`).
 - Separate liveness and readiness health checks.
 
 # Documentation deliverables (OLD_README §14)

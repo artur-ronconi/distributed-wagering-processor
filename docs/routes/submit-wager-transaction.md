@@ -208,7 +208,7 @@ export { ISubmitWagerTransactionServiceOutput };
 ```
 
 ### Status no controller (depende do resultado)
-`MISSING_IDEMPOTENCY_KEY` fica em `src/presentation/http/wagering/wagering.errors.ts` (`code: FailureCode.InvalidPayload`, `400`).
+`MISSING_IDEMPOTENCY_KEY` fica em `src/application/use-cases/submit-wager-transaction/submit-wager-transaction.errors.ts` (`code: FailureCode.InvalidPayload`, `400`).
 
 ```ts
 @Post()

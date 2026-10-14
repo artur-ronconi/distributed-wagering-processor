@@ -58,7 +58,7 @@ ReconcileWalletController
        3. difference = stored − calculated; consistent = difference.isZero()
        4. se !consistent:
             log de erro (walletId, stored, calculated, difference, correlationId)
-            métrica wallet_reconciliation_mismatch_total{currency} +1
+            métrica wagering_reconciliation_mismatches_total{currency} +1
        5. 200 (sempre, consistente ou não)
 ```
 

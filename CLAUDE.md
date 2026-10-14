@@ -12,7 +12,7 @@ Resumo de tudo que precisa ser feito: `docs/requirements.md`.
 
 Correção financeira (20), concorrência (20), idempotência (15), mensageria e falhas (15), modelagem e arquitetura (10), testes (10), observabilidade (5), documentação (5). Autenticação **não vale pontos**: não deixe ela competir com o resto.
 
-## Estrutura planejada
+## Estrutura
 
 Um único serviço NestJS (não é monorepo, não tem frontend).
 
@@ -33,11 +33,11 @@ README.md           → README do projeto: setup e comandos (entregável, a cria
 ARCHITECTURE.md     → decisões, trade-offs e limitações (entregável, a criar)
 ```
 
-## Comandos (a criar)
+## Comandos
 
 ```bash
 bun install
-docker compose up -d          # PostgreSQL + LocalStack (SQS) + app
+bun run docker:up              # PostgreSQL + LocalStack (SQS) + app, espera tudo ficar saudável
 bun run dev                   # app com watch
 bun run migration:up          # aplica migrations
 bun run migration:down        # reverte (migrations precisam ser reversíveis)
@@ -72,7 +72,7 @@ Fica a critério do candidato (seção 2 do OLD_README). Se implementar, use um 
 7. **Sem `read → calculate → update` sem controle de concorrência** (lock pessimista, optimistic locking com `version` ou update condicionado).
 8. **Correto com múltiplas instâncias** (≥ 3).
 9. **Unicidade, imutabilidade e não-negatividade garantidas no schema do banco** (constraints, CHECKs, índices, triggers), não só no código.
-10. **TypeScript strict.** Não afrouxe `strict`, `noImplicitAny`, `strictNullChecks`.
+10. **TypeScript strict.** Não afrouxe `strict`, `noImplicitAny`, `strictNullChecks`. O `tsconfig` segue o recomendado pelo Bun (`verbatimModuleSyntax`): tipos e interfaces são importados com `import type`/`type` e reexportados com `export { type X }` — senão o Bun quebra em runtime com `emitDecoratorMetadata`.
 11. **Commits atômicos e convencionais** (`feat(wallet): ...`, `fix(outbox): ...`).
 
 ## Stack

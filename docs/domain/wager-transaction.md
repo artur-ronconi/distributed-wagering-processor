@@ -48,7 +48,7 @@ Na prática, a transação nasce `PENDING` em memória e é decidida antes do co
 - `REFUND` só referencia `BET`. `ROLLBACK` referencia `BET`, `WIN` ou `REFUND`. `WIN` só referencia `BET`.
 - `REFUND`/`ROLLBACK` têm o **mesmo valor** da referência.
 - A referência precisa estar `PROCESSED`.
-- Não reverter a mesma referência duas vezes pelo mesmo kind: checado pelo repository **e** pelo índice único parcial no banco (a entidade não enxerga as outras transações).
+- Uma referência é revertida **no máximo uma vez no total** (REFUND e ROLLBACK compartilham a vaga, então uma `BET` nunca é creditada de volta duas vezes): checado pelo repository (sob o lock da carteira) **e** pelo índice único parcial no banco (a entidade não enxerga as outras transações).
 - Mesma `idempotencyKey` com `payloadHash` diferente: `IDEMPOTENCY_CONFLICT` (409), sem gravar nada.
 - O cálculo do `payloadHash` (JSON canônico + SHA-256) fica na camada **application**. O domínio só compara (`matchesPayload`).
 
@@ -575,9 +575,9 @@ create table "wager_transactions" (
   check ("status" <> 'REJECTED' or "failure_code" is not null)
 );
 
--- A reference cannot be reverted twice by the same kind (OLD_README §7 rule 4)
+-- A reference is reverted at most once, REFUND and ROLLBACK together (OLD_README §7 rule 4, stricter reading)
 create unique index "wager_tx_single_reversal"
-  on "wager_transactions" ("reference_transaction_id", "kind")
+  on "wager_transactions" ("reference_transaction_id")
   where "status" = 'PROCESSED' and "kind" in ('REFUND', 'ROLLBACK');
 
 -- Pending-reference worker

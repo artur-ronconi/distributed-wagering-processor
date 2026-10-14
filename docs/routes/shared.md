@@ -58,7 +58,7 @@ Não existe uma fila por rota:
 ```
 wager-transactions.fifo        ← entrada das transações de aposta (OLD_README §10)
 wager-transactions-dlq.fifo    ← mensagens que falharam de vez (dead-letter queue)
-wagering-events (nome nosso)   ← saída: o outbox publisher publica os eventos de integração aqui
+wagering-events.fifo (nome nosso) ← saída: o outbox publisher publica os eventos de integração aqui
 ```
 
 As outras rotas não têm fila, por dois motivos:
