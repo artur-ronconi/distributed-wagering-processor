@@ -204,6 +204,7 @@ class WagerTransactionAggregate extends Aggregate<IWagerTransactionProps> {
   /** Submitted by a provider (HTTP or SQS). Born PENDING. */
   static create(props: ICreateWagerTransactionProps) {
     if (props.kind === Kind.Opening) return Output.fail(OPENING_NOT_ALLOWED);
+    if (!Object.values(Kind).includes(props.kind)) return Output.fail(INVALID_WAGER_TRANSACTION);
 
     const transaction = new WagerTransactionAggregate({
       ...props,

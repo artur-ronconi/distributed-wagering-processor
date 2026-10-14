@@ -59,6 +59,11 @@ describe("WagerTransactionAggregate", () => {
       expect(codeOf(output.result)).toBe(FailureCode.InvalidPayload);
     });
 
+    it("refuses an unknown kind", () => {
+      const output = WagerTransactionAggregate.create(props({ kind: "JACKPOT" as Kind }));
+      expect(codeOf(output.result)).toBe(FailureCode.InvalidPayload);
+    });
+
     it.each([Kind.Refund, Kind.Rollback])("%s requires a reference", (kind) => {
       const output = WagerTransactionAggregate.create(props({ kind }));
 

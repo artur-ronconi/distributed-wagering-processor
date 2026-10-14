@@ -177,6 +177,12 @@ const IDEMPOTENCY_CONFLICT: IDomainError = {
   statusCode: HttpStatus.CONFLICT,
 };
 
+const TRANSACTION_NOT_FOUND: IDomainError = {
+  code: FailureCode.TransactionNotFound,
+  message: "Wager transaction does not exist.",
+  statusCode: HttpStatus.NOT_FOUND,
+};
+
 const WALLET_PLAYER_MISMATCH: IDomainError = {
   code: FailureCode.WalletPlayerMismatch,
   message: "The wallet does not belong to this player.",
@@ -233,6 +239,7 @@ export {
   REFERENCE_REQUIRED,
   INVALID_WAGER_AMOUNT,
   IDEMPOTENCY_CONFLICT,
+  TRANSACTION_NOT_FOUND,
   WALLET_PLAYER_MISMATCH,
   REFERENCE_NOT_FOUND,
   REFERENCE_KIND_NOT_ALLOWED,
@@ -452,6 +459,7 @@ class WagerTransactionAggregate extends Aggregate<IWagerTransactionProps> {
   /** Submitted by a provider (HTTP or SQS). Born PENDING. */
   static create(props: ICreateWagerTransactionProps) {
     if (props.kind === Kind.Opening) return Output.fail(OPENING_NOT_ALLOWED);
+    if (!Object.values(Kind).includes(props.kind)) return Output.fail(INVALID_WAGER_TRANSACTION);
 
     const transaction = new WagerTransactionAggregate({
       ...props,
