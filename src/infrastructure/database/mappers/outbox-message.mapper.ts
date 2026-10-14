@@ -25,7 +25,8 @@ class OutboxMessageMapper implements IBidirectionalMapper<IOutboxMessageRow, Out
       id: message.id.value,
       aggregateId: message.aggregateId,
       eventType: message.eventType,
-      payload: { ...message.payload },
+      // deep, mutable copy: the event data is frozen and the ORM may touch nested objects
+      payload: JSON.parse(JSON.stringify(message.payload)) as Record<string, unknown>,
       occurredAt: message.occurredAt.value,
       attempts: message.attempts,
       nextAttemptAt: message.nextAttemptAt.value,
