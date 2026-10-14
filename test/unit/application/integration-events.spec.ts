@@ -1,17 +1,17 @@
 import { describe, expect, it } from "bun:test";
 import { DateValueObject, IdValueObject } from "ddd-tool-kit";
 
-import { WalletAggregate } from "../../../src/domain/wallet/wallet.aggregate-root";
-import { WalletLedgerEntryEntity } from "../../../src/domain/wallet-ledger-entry/wallet-ledger-entry.entity";
-import { WagerTransactionAggregate } from "../../../src/domain/wager-transaction/wager-transaction.aggregate-root";
-import { WagerTransactionKind } from "../../../src/domain/wager-transaction/wager-transaction.enums";
-import { FailureCode } from "../../../src/domain/shared/failure-code";
-import { LedgerDirection } from "../../../src/domain/wallet-ledger-entry/wallet-ledger-entry.props";
-import { WalletBalanceChanged } from "../../../src/application/events/wallet-balance-changed.event";
-import { WagerTransactionProcessed } from "../../../src/application/events/wager-transaction-processed.event";
-import { WagerTransactionRejected } from "../../../src/application/events/wager-transaction-rejected.event";
-import { WagerTransactionPendingReference } from "../../../src/application/events/wager-transaction-pending-reference.event";
-import { OutboxMessageAggregate } from "../../../src/domain/messaging/outbox-message/outbox-message.aggregate-root";
+import { WalletAggregate } from "../../../src/modules/wallet/domain/aggregate/aggregate-root/wallet.aggregate-root";
+import { WalletLedgerEntryEntity } from "../../../src/modules/wallet/domain/aggregate/entities/wallet-ledger-entry/wallet-ledger-entry.entity";
+import { WagerTransactionAggregate } from "../../../src/modules/wager-transaction/domain/aggregate/aggregate-root/wager-transaction.aggregate-root";
+import { WagerTransactionKind } from "../../../src/modules/wager-transaction/domain/aggregate/aggregate-root/wager-transaction.enums";
+import { FailureCode } from "../../../src/shared/domain/failure-code";
+import { LedgerDirection } from "../../../src/modules/wallet/domain/aggregate/entities/wallet-ledger-entry/wallet-ledger-entry.props";
+import { WalletBalanceChanged } from "../../../src/modules/wallet/domain/events/wallet-balance-changed.event";
+import { WagerTransactionProcessed } from "../../../src/modules/wager-transaction/domain/events/wager-transaction-processed.event";
+import { WagerTransactionRejected } from "../../../src/modules/wager-transaction/domain/events/wager-transaction-rejected.event";
+import { WagerTransactionPendingReference } from "../../../src/modules/wager-transaction/domain/events/wager-transaction-pending-reference.event";
+import { OutboxMessageAggregate } from "../../../src/modules/messaging/domain/aggregate/aggregate-root/outbox-message/outbox-message.aggregate-root";
 import { brl } from "../../support/money";
 
 const ctx = { correlationId: "corr-1", causationId: "msg-1", now: new Date("2026-07-29T15:00:00.000Z") };

@@ -9,7 +9,7 @@ import type { INestApplication } from "@nestjs/common";
 
 import { createApp } from "../../src/bootstrap";
 import { type AppConfig, loadConfig } from "../../src/config/app-config";
-import { createSqsClient, QueueUrlResolver } from "../../src/infrastructure/messaging/sqs.client";
+import { createSqsClient, QueueUrlResolver } from "../../src/shared/infrastructure/services/sqs.client";
 import { TEST_DATABASE_URL } from "./database";
 
 /** Test queues created by docker/localstack/init-sqs.sh (suffix -test). */

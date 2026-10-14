@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 
 import { http, startTestApp, type TestApp } from "../../support/app";
-import { ShutdownState } from "../../../src/infrastructure/health/shutdown-state";
+import { ShutdownState } from "../../../src/shared/infrastructure/services/shutdown-state";
 
 let app: TestApp;
 

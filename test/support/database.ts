@@ -1,13 +1,13 @@
 import { MikroORM } from "@mikro-orm/postgresql";
 
-import { createMikroOrmConfig } from "../../src/infrastructure/database/mikro-orm.config";
-import { MikroOrmUnitOfWork } from "../../src/infrastructure/database/mikro-orm.unit-of-work";
-import { MikroOrmWalletRepository } from "../../src/infrastructure/database/repositories/mikro-orm.wallet.repository";
-import { MikroOrmWagerTransactionRepository } from "../../src/infrastructure/database/repositories/mikro-orm.wager-transaction.repository";
-import { MikroOrmInboxMessageRepository } from "../../src/infrastructure/database/repositories/mikro-orm.inbox-message.repository";
-import { MikroOrmOutboxMessageRepository } from "../../src/infrastructure/database/repositories/mikro-orm.outbox-message.repository";
-import { MikroOrmWalletLedgerQuery } from "../../src/infrastructure/database/queries/mikro-orm.wallet-ledger.query";
-import { MikroOrmLedgerReconciliationQuery } from "../../src/infrastructure/database/queries/mikro-orm.ledger-reconciliation.query";
+import { createMikroOrmConfig } from "../../src/config/mikro-orm.config";
+import { MikroOrmUnitOfWork } from "../../src/shared/infrastructure/database/mikro-orm.unit-of-work";
+import { MikroOrmWalletRepository } from "../../src/modules/wallet/infrastructure/database/repositories/mikro-orm.wallet.repository";
+import { MikroOrmWagerTransactionRepository } from "../../src/modules/wager-transaction/infrastructure/database/repositories/mikro-orm.wager-transaction.repository";
+import { MikroOrmInboxMessageRepository } from "../../src/modules/messaging/infrastructure/database/repositories/mikro-orm.inbox-message.repository";
+import { MikroOrmOutboxMessageRepository } from "../../src/modules/messaging/infrastructure/database/repositories/mikro-orm.outbox-message.repository";
+import { MikroOrmWalletLedgerQuery } from "../../src/modules/wallet/infrastructure/database/queries/mikro-orm.wallet-ledger.query";
+import { MikroOrmLedgerReconciliationQuery } from "../../src/modules/wallet/infrastructure/database/queries/mikro-orm.ledger-reconciliation.query";
 
 /** Real PostgreSQL from docker compose (host port 5433), separate database for tests. */
 export const TEST_DATABASE_URL =

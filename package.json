@@ -13,8 +13,8 @@
     "test:integration": "bun test test/integration --timeout 120000",
     "test:concurrency": "bun test test/concurrency --timeout 300000",
     "test:all": "bun run test:unit && bun run test:integration && bun run test:concurrency",
-    "migration:up": "bun src/infrastructure/database/migration.cli.ts up",
-    "migration:down": "bun src/infrastructure/database/migration.cli.ts down",
+    "migration:up": "bun src/shared/infrastructure/database/migration.cli.ts up",
+    "migration:down": "bun src/shared/infrastructure/database/migration.cli.ts down",
     "docker:up": "docker compose up -d --build --wait",
     "docker:down": "docker compose down",
     "docker:prune": "docker compose down -v --rmi local"

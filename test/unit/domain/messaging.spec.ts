@@ -1,11 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { DateValueObject, IdValueObject } from "ddd-tool-kit";
 
-import { InboxMessageAggregate } from "../../../src/domain/messaging/inbox-message/inbox-message.aggregate-root";
-import { InboxMessageAlreadyProcessedError } from "../../../src/domain/messaging/inbox-message/inbox-message.errors";
-import { OutboxMessageAggregate } from "../../../src/domain/messaging/outbox-message/outbox-message.aggregate-root";
-import { OutboxMessageAlreadyPublishedError } from "../../../src/domain/messaging/outbox-message/outbox-message.errors";
-import { type IOutboxEvent } from "../../../src/domain/messaging/outbox-message/outbox-event.interface";
+import { InboxMessageAggregate } from "../../../src/modules/messaging/domain/aggregate/aggregate-root/inbox-message/inbox-message.aggregate-root";
+import { InboxMessageAlreadyProcessedError } from "../../../src/modules/messaging/domain/aggregate/aggregate-root/inbox-message/inbox-message.errors";
+import { OutboxMessageAggregate } from "../../../src/modules/messaging/domain/aggregate/aggregate-root/outbox-message/outbox-message.aggregate-root";
+import { OutboxMessageAlreadyPublishedError } from "../../../src/modules/messaging/domain/aggregate/aggregate-root/outbox-message/outbox-message.errors";
+import { type IOutboxEvent } from "../../../src/modules/messaging/domain/aggregate/aggregate-root/outbox-message/outbox-event.interface";
 
 describe("InboxMessageAggregate", () => {
   const receive = () =>

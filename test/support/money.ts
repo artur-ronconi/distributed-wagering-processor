@@ -1,4 +1,4 @@
-import { MoneyValueObject } from "../../src/domain/money/money.value-object";
+import { MoneyValueObject } from "../../src/modules/wallet/domain/aggregate/value-objects/money/money.value-object";
 
 export const money = (amount: string, currency: string): MoneyValueObject => {
   const output = MoneyValueObject.from({ amount, currency });

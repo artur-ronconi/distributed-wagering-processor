@@ -1,14 +1,14 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "bun:test";
 import { IdValueObject } from "ddd-tool-kit";
 
-import { ConcurrencyConflictError } from "../../../src/application/errors/concurrency-conflict.error";
-import { DuplicateKeyError } from "../../../src/application/errors/duplicate-key.error";
-import { TransientInfrastructureError } from "../../../src/application/errors/transient-infrastructure.error";
-import { WalletAggregate } from "../../../src/domain/wallet/wallet.aggregate-root";
-import { WagerTransactionKind, WagerTransactionStatus } from "../../../src/domain/wager-transaction/wager-transaction.enums";
-import { FailureCode } from "../../../src/domain/shared/failure-code";
-import { InboxMessageAggregate } from "../../../src/domain/messaging/inbox-message/inbox-message.aggregate-root";
-import { OutboxMessageAggregate } from "../../../src/domain/messaging/outbox-message/outbox-message.aggregate-root";
+import { ConcurrencyConflictError } from "../../../src/shared/errors/concurrency-conflict.error";
+import { DuplicateKeyError } from "../../../src/shared/errors/duplicate-key.error";
+import { TransientInfrastructureError } from "../../../src/shared/errors/transient-infrastructure.error";
+import { WalletAggregate } from "../../../src/modules/wallet/domain/aggregate/aggregate-root/wallet.aggregate-root";
+import { WagerTransactionKind, WagerTransactionStatus } from "../../../src/modules/wager-transaction/domain/aggregate/aggregate-root/wager-transaction.enums";
+import { FailureCode } from "../../../src/shared/domain/failure-code";
+import { InboxMessageAggregate } from "../../../src/modules/messaging/domain/aggregate/aggregate-root/inbox-message/inbox-message.aggregate-root";
+import { OutboxMessageAggregate } from "../../../src/modules/messaging/domain/aggregate/aggregate-root/outbox-message/outbox-message.aggregate-root";
 import { connectTestDatabase, expectLedgerMatchesBalances, type TestDatabase } from "../../support/database";
 import { now, openWallet, unique, wagerTransaction } from "../../support/factories";
 import { brl } from "../../support/money";

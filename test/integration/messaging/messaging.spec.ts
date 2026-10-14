@@ -5,14 +5,14 @@ import { connectTestDatabase, expectLedgerMatchesBalances, type TestDatabase } f
 import { drain, eventually, http, startTestApp, TEST_QUEUES, testSqs, type TestApp } from "../../support/app";
 import { balanceOf, createWallet, submit, wagerBody, type WalletFixture } from "../../support/api";
 import { unique } from "../../support/factories";
-import { WagerTransactionsConsumer } from "../../../src/presentation/sqs/wager-transactions.consumer";
-import { SubmitWagerTransactionService } from "../../../src/application/use-cases/submit-wager-transaction/submit-wager-transaction.service";
-import { PublishOutboxService } from "../../../src/application/use-cases/publish-outbox/publish-outbox.service";
-import type { EventPublisher, PublishableEvent } from "../../../src/application/ports/event-publisher.port";
-import type { Metrics } from "../../../src/application/ports/metrics.port";
-import { InboxMessageAggregate } from "../../../src/domain/messaging/inbox-message/inbox-message.aggregate-root";
-import { OutboxMessageAggregate } from "../../../src/domain/messaging/outbox-message/outbox-message.aggregate-root";
-import { sha256 } from "../../../src/application/idempotency/canonical-payload-hash";
+import { WagerTransactionsConsumer } from "../../../src/modules/wager-transaction/presentation/consumers/wager-transactions.consumer";
+import { SubmitWagerTransactionUseCase } from "../../../src/modules/wager-transaction/domain/usecases/submit-wager-transaction/submit-wager-transaction.usecase";
+import { PublishOutboxUseCase } from "../../../src/modules/messaging/domain/usecases/publish-outbox/publish-outbox.usecase";
+import type { EventPublisher, PublishableEvent } from "../../../src/modules/messaging/domain/services/event-publisher.service";
+import type { Metrics } from "../../../src/shared/services/metrics.service";
+import { InboxMessageAggregate } from "../../../src/modules/messaging/domain/aggregate/aggregate-root/inbox-message/inbox-message.aggregate-root";
+import { OutboxMessageAggregate } from "../../../src/modules/messaging/domain/aggregate/aggregate-root/outbox-message/outbox-message.aggregate-root";
+import { sha256 } from "../../../src/shared/utils/canonical-hash";
 
 let app: TestApp;
 let db: TestDatabase;
@@ -132,7 +132,7 @@ describe("SQS consumer (wager-transactions.fifo)", () => {
       payloadHash: sha256(received!.Body ?? ""),
     }).result as InboxMessageAggregate;
     const committed = await app.app
-      .get(SubmitWagerTransactionService)
+      .get(SubmitWagerTransactionUseCase)
       .executeFromMessage({ ...message.data, correlationId: message.messageId }, inbox);
     expect(committed.isSuccess).toBe(true);
 
@@ -232,7 +232,7 @@ describe("outbox publisher", () => {
   };
 
   const publisherWith = (eventPublisher: EventPublisher, batchSize = 5) =>
-    new PublishOutboxService(db.uow, db.outbox, eventPublisher, noMetrics, {
+    new PublishOutboxUseCase(db.uow, db.outbox, eventPublisher, noMetrics, {
       outboxPublisher: { batchSize, intervalMs: 10 },
     });
 
@@ -240,7 +240,7 @@ describe("outbox publisher", () => {
     const wallet = await createWallet(app.url, "100.00");
     await submit(app.url, wallet, { amount: "10.00" });
 
-    const published = await app.app.get(PublishOutboxService).execute();
+    const published = await app.app.get(PublishOutboxUseCase).execute();
     expect(published).toBe(4); // OPENING (2) + BET (2)
 
     const messages = await drain(sqs, TEST_QUEUES.events);
@@ -263,7 +263,7 @@ describe("outbox publisher", () => {
     const a = publisherWith(slowPublisher);
     const b = publisherWith(slowPublisher);
 
-    const run = async (publisher: PublishOutboxService) => {
+    const run = async (publisher: PublishOutboxUseCase) => {
       while ((await publisher.execute()) > 0) {
         // keep draining
       }

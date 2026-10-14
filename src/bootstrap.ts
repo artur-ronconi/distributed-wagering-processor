@@ -7,8 +7,8 @@ import { Logger } from "nestjs-pino";
 
 import { AppModule } from "./app.module";
 import { type AppConfig } from "./config/app-config";
-import { runMigrations } from "./infrastructure/database/run-migrations";
-import { setupSwagger } from "./presentation/http/swagger/swagger.setup";
+import { runMigrations } from "./shared/infrastructure/database/run-migrations";
+import { setupSwagger } from "./shared/presentation/swagger/swagger.setup";
 
 /** Builds the application without listening (used by main.ts and by the integration tests). */
 const createApp = async (config: AppConfig): Promise<INestApplication> => {

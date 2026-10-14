@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { IdValueObject } from "ddd-tool-kit";
 
-import { WalletLedgerEntryEntity } from "../../../src/domain/wallet-ledger-entry/wallet-ledger-entry.entity";
-import { LedgerDirection } from "../../../src/domain/wallet-ledger-entry/wallet-ledger-entry.props";
-import { MoneyValueObject } from "../../../src/domain/money/money.value-object";
+import { WalletLedgerEntryEntity } from "../../../src/modules/wallet/domain/aggregate/entities/wallet-ledger-entry/wallet-ledger-entry.entity";
+import { LedgerDirection } from "../../../src/modules/wallet/domain/aggregate/entities/wallet-ledger-entry/wallet-ledger-entry.props";
+import { MoneyValueObject } from "../../../src/modules/wallet/domain/aggregate/value-objects/money/money.value-object";
 import { brl, money } from "../../support/money";
 
 const create = (
