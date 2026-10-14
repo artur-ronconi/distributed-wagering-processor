@@ -164,7 +164,7 @@ describe("persistence (real PostgreSQL)", () => {
       expect((error as DuplicateKeyError).constraint).toBe("wager_tx_idempotency_key_unique");
     });
 
-    it("a reference cannot be reverted twice by the same kind", async () => {
+    it("a reference cannot be reverted twice (REFUND and ROLLBACK share the slot)", async () => {
       const { wallet } = await persistOpenedWallet("100.00");
       const bet = wagerTransaction(wallet);
       bet.markProcessed(undefined, now(), brl("75.00"));
@@ -178,13 +178,19 @@ describe("persistence (real PostgreSQL)", () => {
         tx.markProcessed(bet.id, now(), brl("100.00"));
         return tx;
       };
+      expect(await db.uow.transactional(() => db.transactions.isAlreadyReversed(bet.id))).toBe(false);
       await db.uow.transactional(() => db.transactions.insert(refund()));
 
-      const error = await db.uow.transactional(() => db.transactions.insert(refund())).catch((e: unknown) => e);
-      expect((error as DuplicateKeyError).constraint).toBe("wager_tx_single_reversal");
-      expect(
-        await db.uow.transactional(() => db.transactions.isAlreadyReversed(bet.id, WagerTransactionKind.Refund)),
-      ).toBe(true);
+      const rollback = wagerTransaction(wallet, {
+        kind: WagerTransactionKind.Rollback,
+        referenceExternalTransactionId: bet.externalTransactionId,
+      });
+      rollback.markProcessed(bet.id, now(), brl("75.00"));
+      for (const second of [refund(), rollback]) {
+        const error = await db.uow.transactional(() => db.transactions.insert(second)).catch((e: unknown) => e);
+        expect((error as DuplicateKeyError).constraint).toBe("wager_tx_single_reversal");
+      }
+      expect(await db.uow.transactional(() => db.transactions.isAlreadyReversed(bet.id))).toBe(true);
     });
 
     it("a ledger entry must point to an existing transaction (checked at commit)", async () => {

@@ -30,10 +30,10 @@ class MikroOrmWagerTransactionRepository implements WagerTransactionRepository {
     return this.findOne({ providerId, externalTransactionId });
   }
 
-  async isAlreadyReversed(referenceTransactionId: IdValueObject, kind: WagerTransactionKind): Promise<boolean> {
+  async isAlreadyReversed(referenceTransactionId: IdValueObject): Promise<boolean> {
     const count = await this.em.count(WagerTransactionSchema, {
       referenceTransactionId: referenceTransactionId.value,
-      kind,
+      kind: { $in: [WagerTransactionKind.Refund, WagerTransactionKind.Rollback] },
       status: WagerTransactionStatus.Processed,
     });
     return count > 0;

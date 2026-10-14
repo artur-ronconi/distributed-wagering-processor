@@ -56,10 +56,11 @@ export class Migration20261014120000InitialSchema extends Migration {
       );
     `);
 
-    // A reference cannot be reverted twice by the same kind of operation (OLD_README §7 rule 4).
+    // A reference is reverted at most once (OLD_README §7 rule 4). Stricter reading adopted:
+    // REFUND and ROLLBACK share the slot, so a BET can never be credited back twice.
     this.addSql(`
       create unique index "wager_tx_single_reversal"
-        on "wager_transactions" ("reference_transaction_id", "kind")
+        on "wager_transactions" ("reference_transaction_id")
         where "status" = 'PROCESSED' and "kind" in ('REFUND', 'ROLLBACK');
     `);
     this.addSql(`
