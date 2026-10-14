@@ -1,0 +1,19 @@
+import { DateValueObject, IBaseDomainEntity, IdValueObject } from "ddd-tool-kit";
+import { MoneyValueObject } from "../money/money.value-object";
+
+enum LedgerDirection {
+  Debit = "DEBIT",
+  Credit = "CREDIT",
+}
+
+interface IWalletLedgerEntryProps extends IBaseDomainEntity {
+  walletId: IdValueObject;
+  transactionId: IdValueObject;
+  direction: LedgerDirection;
+  money: MoneyValueObject;
+  balanceBefore: MoneyValueObject;
+  balanceAfter: MoneyValueObject;
+  createdAt?: DateValueObject;
+}
+
+export { LedgerDirection, IWalletLedgerEntryProps };
