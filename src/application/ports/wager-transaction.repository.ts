@@ -17,4 +17,4 @@ interface WagerTransactionRepository {
   save(transaction: WagerTransactionAggregate): Promise<void>;
 }
 
-export { WAGER_TRANSACTION_REPOSITORY, WagerTransactionRepository };
+export { WAGER_TRANSACTION_REPOSITORY, type WagerTransactionRepository };

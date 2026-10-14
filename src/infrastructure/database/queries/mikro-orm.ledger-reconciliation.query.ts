@@ -1,7 +1,7 @@
 import { EntityManager } from "@mikro-orm/postgresql";
 import { Injectable } from "@nestjs/common";
 
-import { LedgerReconciliationQuery, LedgerTotals } from "../../../application/ports/ledger-reconciliation.query";
+import { type LedgerReconciliationQuery, type LedgerTotals } from "../../../application/ports/ledger-reconciliation.query";
 
 @Injectable()
 class MikroOrmLedgerReconciliationQuery implements LedgerReconciliationQuery {

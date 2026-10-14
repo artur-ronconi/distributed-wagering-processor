@@ -54,4 +54,4 @@ const WagerTransactionSchema = new EntitySchema<IWagerTransactionRow>({
   },
 });
 
-export { WagerTransactionSchema, IWagerTransactionRow };
+export { WagerTransactionSchema, type IWagerTransactionRow };

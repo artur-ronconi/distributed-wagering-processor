@@ -1,4 +1,4 @@
-import { MoneyProps } from "../../domain/money/money.props";
+import { type MoneyProps } from "../../domain/money/money.props";
 import { WagerTransactionAggregate } from "../../domain/wager-transaction/wager-transaction.aggregate-root";
 import { WagerTransactionKind, WagerTransactionStatus } from "../../domain/wager-transaction/wager-transaction.enums";
 
@@ -30,4 +30,4 @@ const toWagerTransactionEventData = (tx: WagerTransactionAggregate): WagerTransa
   referenceExternalTransactionId: tx.referenceExternalTransactionId,
 });
 
-export { WagerTransactionEventData, toWagerTransactionEventData };
+export { type WagerTransactionEventData, toWagerTransactionEventData };

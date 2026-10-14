@@ -1,7 +1,7 @@
-import { MoneyProps } from "../../domain/money/money.props";
+import { type MoneyProps } from "../../domain/money/money.props";
 import { WagerTransactionAggregate } from "../../domain/wager-transaction/wager-transaction.aggregate-root";
-import { EventContext, IntegrationEvent } from "./integration-event";
-import { toWagerTransactionEventData, WagerTransactionEventData } from "./wager-transaction.event-data";
+import { type EventContext, IntegrationEvent } from "./integration-event";
+import { toWagerTransactionEventData, type WagerTransactionEventData } from "./wager-transaction.event-data";
 
 interface WagerTransactionProcessedData extends WagerTransactionEventData {
   referenceTransactionId?: string;
@@ -23,4 +23,4 @@ class WagerTransactionProcessed extends IntegrationEvent<WagerTransactionProcess
   }
 }
 
-export { WagerTransactionProcessed, WagerTransactionProcessedData };
+export { WagerTransactionProcessed, type WagerTransactionProcessedData };

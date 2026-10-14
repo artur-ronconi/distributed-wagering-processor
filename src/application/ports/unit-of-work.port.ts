@@ -14,4 +14,4 @@ interface UnitOfWork {
   transactional<T>(work: () => Promise<T>, options?: TransactionOptions): Promise<T>;
 }
 
-export { UNIT_OF_WORK, UnitOfWork, TransactionOptions };
+export { UNIT_OF_WORK, type UnitOfWork, type TransactionOptions };

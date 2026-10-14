@@ -5,7 +5,7 @@ import { InboxMessageAggregate } from "../../../src/domain/messaging/inbox-messa
 import { InboxMessageAlreadyProcessedError } from "../../../src/domain/messaging/inbox-message/inbox-message.errors";
 import { OutboxMessageAggregate } from "../../../src/domain/messaging/outbox-message/outbox-message.aggregate-root";
 import { OutboxMessageAlreadyPublishedError } from "../../../src/domain/messaging/outbox-message/outbox-message.errors";
-import { IOutboxEvent } from "../../../src/domain/messaging/outbox-message/outbox-event.interface";
+import { type IOutboxEvent } from "../../../src/domain/messaging/outbox-message/outbox-event.interface";
 
 describe("InboxMessageAggregate", () => {
   const receive = () =>

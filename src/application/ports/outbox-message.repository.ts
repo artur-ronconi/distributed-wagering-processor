@@ -10,4 +10,4 @@ interface OutboxMessageRepository {
   save(message: OutboxMessageAggregate): Promise<void>;
 }
 
-export { OUTBOX_MESSAGE_REPOSITORY, OutboxMessageRepository };
+export { OUTBOX_MESSAGE_REPOSITORY, type OutboxMessageRepository };

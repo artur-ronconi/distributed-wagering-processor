@@ -28,4 +28,4 @@ const WalletLedgerEntrySchema = new EntitySchema<IWalletLedgerEntryRow>({
   },
 });
 
-export { WalletLedgerEntrySchema, IWalletLedgerEntryRow };
+export { WalletLedgerEntrySchema, type IWalletLedgerEntryRow };

@@ -6,7 +6,7 @@ import {
   verifyAreValueObjects,
 } from "ddd-tool-kit";
 
-import { IInboxMessageProps, IReceiveInboxProps } from "./inbox-message.props";
+import { type IInboxMessageProps, type IReceiveInboxProps } from "./inbox-message.props";
 import { INVALID_INBOX_MESSAGE, InboxMessageAlreadyProcessedError } from "./inbox-message.errors";
 
 class InboxMessageAggregate extends Aggregate<IInboxMessageProps> {

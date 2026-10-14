@@ -1,4 +1,4 @@
-import { IBaseDomainValueObject } from "ddd-tool-kit";
+import { type IBaseDomainValueObject } from "ddd-tool-kit";
 
 /** Contract shape (OLD_README §6.1): decimal string with exactly 2 places. */
 interface MoneyProps {
@@ -11,4 +11,4 @@ interface IMoneyValueObject extends IBaseDomainValueObject<bigint> {
   currency: string;
 }
 
-export { MoneyProps, IMoneyValueObject };
+export { type MoneyProps, type IMoneyValueObject };

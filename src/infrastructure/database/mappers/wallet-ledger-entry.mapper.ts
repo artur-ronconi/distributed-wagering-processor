@@ -1,8 +1,8 @@
-import { IBidirectionalMapper } from "ddd-tool-kit";
+import { type IBidirectionalMapper } from "ddd-tool-kit";
 
 import { WalletLedgerEntryEntity } from "../../../domain/wallet-ledger-entry/wallet-ledger-entry.entity";
 import { LedgerDirection } from "../../../domain/wallet-ledger-entry/wallet-ledger-entry.props";
-import { IWalletLedgerEntryRow } from "../schemas/wallet-ledger-entry.schema";
+import { type IWalletLedgerEntryRow } from "../schemas/wallet-ledger-entry.schema";
 import { date, id, money } from "./mapping.helpers";
 
 class WalletLedgerEntryMapper implements IBidirectionalMapper<IWalletLedgerEntryRow, WalletLedgerEntryEntity> {

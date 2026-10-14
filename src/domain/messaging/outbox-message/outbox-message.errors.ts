@@ -1,5 +1,5 @@
 import { HttpStatus } from "ddd-tool-kit";
-import { IDomainError } from "../../shared/domain-error";
+import { type IDomainError } from "../../shared/domain-error";
 import { FailureCode } from "../../shared/failure-code";
 
 // Should never reach a provider: events are built by our own code.

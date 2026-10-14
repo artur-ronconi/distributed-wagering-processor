@@ -7,9 +7,9 @@ import {
   WagerTransactionStatus as Status,
 } from "../../../src/domain/wager-transaction/wager-transaction.enums";
 import { InvalidTransactionStateError } from "../../../src/domain/wager-transaction/wager-transaction.errors";
-import { ICreateWagerTransactionProps } from "../../../src/domain/wager-transaction/wager-transaction.props";
+import { type ICreateWagerTransactionProps } from "../../../src/domain/wager-transaction/wager-transaction.props";
 import { LedgerDirection } from "../../../src/domain/wallet-ledger-entry/wallet-ledger-entry.props";
-import { IDomainError } from "../../../src/domain/shared/domain-error";
+import { type IDomainError } from "../../../src/domain/shared/domain-error";
 import { FailureCode } from "../../../src/domain/shared/failure-code";
 import { brl, money } from "../../support/money";
 

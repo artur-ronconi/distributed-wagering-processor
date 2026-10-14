@@ -9,7 +9,7 @@ import { WagerTransactionKind, WagerTransactionStatus } from "../../../src/domai
 import { FailureCode } from "../../../src/domain/shared/failure-code";
 import { InboxMessageAggregate } from "../../../src/domain/messaging/inbox-message/inbox-message.aggregate-root";
 import { OutboxMessageAggregate } from "../../../src/domain/messaging/outbox-message/outbox-message.aggregate-root";
-import { connectTestDatabase, expectLedgerMatchesBalances, TestDatabase } from "../../support/database";
+import { connectTestDatabase, expectLedgerMatchesBalances, type TestDatabase } from "../../support/database";
 import { now, openWallet, unique, wagerTransaction } from "../../support/factories";
 import { brl } from "../../support/money";
 

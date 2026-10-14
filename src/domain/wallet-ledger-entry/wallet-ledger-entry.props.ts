@@ -1,4 +1,4 @@
-import { DateValueObject, IBaseDomainEntity, IdValueObject } from "ddd-tool-kit";
+import { DateValueObject, type IBaseDomainEntity, IdValueObject } from "ddd-tool-kit";
 import { MoneyValueObject } from "../money/money.value-object";
 
 enum LedgerDirection {
@@ -16,4 +16,4 @@ interface IWalletLedgerEntryProps extends IBaseDomainEntity {
   createdAt?: DateValueObject;
 }
 
-export { LedgerDirection, IWalletLedgerEntryProps };
+export { LedgerDirection, type IWalletLedgerEntryProps };

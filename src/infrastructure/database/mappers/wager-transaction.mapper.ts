@@ -1,4 +1,4 @@
-import { IBidirectionalMapper } from "ddd-tool-kit";
+import { type IBidirectionalMapper } from "ddd-tool-kit";
 
 import { FailureCode } from "../../../domain/shared/failure-code";
 import { WagerTransactionAggregate } from "../../../domain/wager-transaction/wager-transaction.aggregate-root";
@@ -6,7 +6,7 @@ import {
   WagerTransactionKind,
   WagerTransactionStatus,
 } from "../../../domain/wager-transaction/wager-transaction.enums";
-import { IWagerTransactionRow } from "../schemas/wager-transaction.schema";
+import { type IWagerTransactionRow } from "../schemas/wager-transaction.schema";
 import { date, id, money } from "./mapping.helpers";
 
 class WagerTransactionMapper implements IBidirectionalMapper<IWagerTransactionRow, WagerTransactionAggregate> {

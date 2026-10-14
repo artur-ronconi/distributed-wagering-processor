@@ -12,4 +12,4 @@ interface EventPublisher {
   publish(event: PublishableEvent): Promise<void>;
 }
 
-export { EVENT_PUBLISHER, EventPublisher, PublishableEvent };
+export { EVENT_PUBLISHER, type EventPublisher, type PublishableEvent };

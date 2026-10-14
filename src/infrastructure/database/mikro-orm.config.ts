@@ -1,7 +1,7 @@
 import { Migrator } from "@mikro-orm/migrations";
-import { defineConfig, Options } from "@mikro-orm/postgresql";
+import { defineConfig, type Options } from "@mikro-orm/postgresql";
 
-import { AppConfig } from "../../config/app-config";
+import { type AppConfig } from "../../config/app-config";
 import { Migration20261014120000InitialSchema } from "./migrations/Migration20261014120000InitialSchema";
 import { ENTITY_SCHEMAS } from "./schemas";
 

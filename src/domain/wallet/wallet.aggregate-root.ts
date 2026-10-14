@@ -9,11 +9,11 @@ import {
   verifyAreValueObjects,
 } from "ddd-tool-kit";
 
-import { IDomainError } from "../shared/domain-error";
+import { type IDomainError } from "../shared/domain-error";
 import { MoneyValueObject } from "../money/money.value-object";
 import { LedgerDirection } from "../wallet-ledger-entry/wallet-ledger-entry.props";
 import { WalletLedgerEntryEntity } from "../wallet-ledger-entry/wallet-ledger-entry.entity";
-import { IOpenWalletProps, IRehydrateWalletProps, IWalletProps } from "./wallet.props";
+import { type IOpenWalletProps, type IRehydrateWalletProps, type IWalletProps } from "./wallet.props";
 import {
   INSUFFICIENT_FUNDS,
   INVALID_MOVEMENT_AMOUNT,

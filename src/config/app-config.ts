@@ -95,4 +95,4 @@ const loadConfig = (env: NodeJS.ProcessEnv = process.env): AppConfig => ({
   },
 });
 
-export { APP_CONFIG, AppConfig, loadConfig };
+export { APP_CONFIG, type AppConfig, loadConfig };

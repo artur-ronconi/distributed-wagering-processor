@@ -5,7 +5,7 @@ import { WalletAggregate } from "../../../src/domain/wallet/wallet.aggregate-roo
 import { REVERSAL_WOULD_OVERDRAW } from "../../../src/domain/wallet/wallet.errors";
 import { LedgerDirection } from "../../../src/domain/wallet-ledger-entry/wallet-ledger-entry.props";
 import { WalletLedgerEntryEntity } from "../../../src/domain/wallet-ledger-entry/wallet-ledger-entry.entity";
-import { IDomainError } from "../../../src/domain/shared/domain-error";
+import { type IDomainError } from "../../../src/domain/shared/domain-error";
 import { FailureCode } from "../../../src/domain/shared/failure-code";
 import { brl, money } from "../../support/money";
 

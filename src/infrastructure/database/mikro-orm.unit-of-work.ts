@@ -2,8 +2,8 @@ import { IsolationLevel } from "@mikro-orm/core";
 import { EntityManager } from "@mikro-orm/postgresql";
 import { Inject, Injectable } from "@nestjs/common";
 
-import { APP_CONFIG, AppConfig } from "../../config/app-config";
-import { TransactionOptions, UnitOfWork } from "../../application/ports/unit-of-work.port";
+import { APP_CONFIG, type AppConfig } from "../../config/app-config";
+import { type TransactionOptions, type UnitOfWork } from "../../application/ports/unit-of-work.port";
 import { translateDatabaseError } from "./database-error.translator";
 
 const ISOLATION: Record<NonNullable<TransactionOptions["isolation"]>, IsolationLevel> = {

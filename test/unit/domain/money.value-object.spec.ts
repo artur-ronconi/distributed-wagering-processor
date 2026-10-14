@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import { MoneyValueObject } from "../../../src/domain/money/money.value-object";
 import { CurrencyMismatchError } from "../../../src/domain/money/money.errors";
-import { IDomainError } from "../../../src/domain/shared/domain-error";
+import { type IDomainError } from "../../../src/domain/shared/domain-error";
 import { FailureCode } from "../../../src/domain/shared/failure-code";
 import { brl, money } from "../../support/money";
 

@@ -1,4 +1,4 @@
-import { DateValueObject, IBaseDomainAggregate, IdValueObject } from "ddd-tool-kit";
+import { DateValueObject, type IBaseDomainAggregate, IdValueObject } from "ddd-tool-kit";
 
 import { FailureCode } from "../shared/failure-code";
 import { MoneyValueObject } from "../money/money.value-object";
@@ -50,4 +50,4 @@ interface ICreateOpeningProps {
   payloadHash: string;
 }
 
-export { IWagerTransactionProps, ICreateWagerTransactionProps, ICreateOpeningProps };
+export { type IWagerTransactionProps, type ICreateWagerTransactionProps, type ICreateOpeningProps };

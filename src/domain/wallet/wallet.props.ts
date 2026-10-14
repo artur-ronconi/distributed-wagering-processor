@@ -1,4 +1,4 @@
-import { IBaseDomainAggregate, IdValueObject } from "ddd-tool-kit";
+import { type IBaseDomainAggregate, IdValueObject } from "ddd-tool-kit";
 
 import { MoneyValueObject } from "../money/money.value-object";
 import { WalletLedgerEntryEntity } from "../wallet-ledger-entry/wallet-ledger-entry.entity";
@@ -23,4 +23,4 @@ interface IOpenWalletProps {
   openingTransactionId: IdValueObject;
 }
 
-export { IWalletProps, IRehydrateWalletProps, IOpenWalletProps };
+export { type IWalletProps, type IRehydrateWalletProps, type IOpenWalletProps };

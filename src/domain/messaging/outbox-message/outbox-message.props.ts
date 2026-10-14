@@ -1,4 +1,4 @@
-import { DateValueObject, IBaseDomainAggregate } from "ddd-tool-kit";
+import { DateValueObject, type IBaseDomainAggregate } from "ddd-tool-kit";
 
 interface IOutboxMessageProps extends IBaseDomainAggregate {
   aggregateId: string;
@@ -10,4 +10,4 @@ interface IOutboxMessageProps extends IBaseDomainAggregate {
   publishedAt?: DateValueObject;
 }
 
-export { IOutboxMessageProps };
+export { type IOutboxMessageProps };

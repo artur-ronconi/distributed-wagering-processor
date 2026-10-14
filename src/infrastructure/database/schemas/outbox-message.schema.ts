@@ -30,4 +30,4 @@ const OutboxMessageSchema = new EntitySchema<IOutboxMessageRow>({
   },
 });
 
-export { OutboxMessageSchema, IOutboxMessageRow };
+export { OutboxMessageSchema, type IOutboxMessageRow };

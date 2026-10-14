@@ -1,5 +1,5 @@
 import { IdValueObject } from "ddd-tool-kit";
-import { IOutboxEvent } from "../../domain/messaging/outbox-message/outbox-event.interface";
+import { type IOutboxEvent } from "../../domain/messaging/outbox-message/outbox-event.interface";
 
 interface EventContext {
   correlationId: string; // ties every log and event of one request together
@@ -71,4 +71,4 @@ abstract class IntegrationEvent<T> implements IOutboxEvent {
   }
 }
 
-export { IntegrationEvent, IntegrationEventProps, EventContext };
+export { IntegrationEvent, type IntegrationEventProps, type EventContext };

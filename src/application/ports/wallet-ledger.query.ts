@@ -1,4 +1,4 @@
-import { MoneyProps } from "../../domain/money/money.props";
+import { type MoneyProps } from "../../domain/money/money.props";
 import { LedgerDirection } from "../../domain/wallet-ledger-entry/wallet-ledger-entry.props";
 
 const WALLET_LEDGER_QUERY = Symbol("WALLET_LEDGER_QUERY");
@@ -24,4 +24,4 @@ interface WalletLedgerQuery {
   page(walletId: string, after: LedgerCursor | null, limit: number): Promise<LedgerEntryView[]>;
 }
 
-export { WALLET_LEDGER_QUERY, LedgerCursor, LedgerEntryView, WalletLedgerQuery };
+export { WALLET_LEDGER_QUERY, type LedgerCursor, type LedgerEntryView, type WalletLedgerQuery };

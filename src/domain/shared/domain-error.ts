@@ -1,8 +1,8 @@
-import { IError } from "ddd-tool-kit";
+import { type IError } from "ddd-tool-kit";
 import { FailureCode } from "./failure-code";
 
 interface IDomainError extends IError {
   code: FailureCode;
 }
 
-export { IDomainError };
+export { type IDomainError };

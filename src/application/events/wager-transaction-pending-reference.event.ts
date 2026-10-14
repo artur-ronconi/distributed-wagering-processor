@@ -1,6 +1,6 @@
 import { WagerTransactionAggregate } from "../../domain/wager-transaction/wager-transaction.aggregate-root";
-import { EventContext, IntegrationEvent } from "./integration-event";
-import { toWagerTransactionEventData, WagerTransactionEventData } from "./wager-transaction.event-data";
+import { type EventContext, IntegrationEvent } from "./integration-event";
+import { toWagerTransactionEventData, type WagerTransactionEventData } from "./wager-transaction.event-data";
 
 interface WagerTransactionPendingReferenceData extends WagerTransactionEventData {
   nextAttemptAt: string; // ISO-8601
@@ -20,4 +20,4 @@ class WagerTransactionPendingReference extends IntegrationEvent<WagerTransaction
   }
 }
 
-export { WagerTransactionPendingReference, WagerTransactionPendingReferenceData };
+export { WagerTransactionPendingReference, type WagerTransactionPendingReferenceData };

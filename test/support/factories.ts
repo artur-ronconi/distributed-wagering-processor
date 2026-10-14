@@ -3,7 +3,7 @@ import { DateValueObject, IdValueObject } from "ddd-tool-kit";
 import { WalletAggregate } from "../../src/domain/wallet/wallet.aggregate-root";
 import { WagerTransactionAggregate } from "../../src/domain/wager-transaction/wager-transaction.aggregate-root";
 import { WagerTransactionKind } from "../../src/domain/wager-transaction/wager-transaction.enums";
-import { ICreateWagerTransactionProps } from "../../src/domain/wager-transaction/wager-transaction.props";
+import { type ICreateWagerTransactionProps } from "../../src/domain/wager-transaction/wager-transaction.props";
 import { brl } from "./money";
 
 let sequence = 0;

@@ -10,4 +10,4 @@ interface LedgerReconciliationQuery {
   totals(walletId: string): Promise<LedgerTotals>;
 }
 
-export { LEDGER_RECONCILIATION_QUERY, LedgerTotals, LedgerReconciliationQuery };
+export { LEDGER_RECONCILIATION_QUERY, type LedgerTotals, type LedgerReconciliationQuery };

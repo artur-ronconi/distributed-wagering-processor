@@ -1,7 +1,7 @@
-import { IBidirectionalMapper } from "ddd-tool-kit";
+import { type IBidirectionalMapper } from "ddd-tool-kit";
 
 import { InboxMessageAggregate } from "../../../domain/messaging/inbox-message/inbox-message.aggregate-root";
-import { IInboxMessageRow } from "../schemas/inbox-message.schema";
+import { type IInboxMessageRow } from "../schemas/inbox-message.schema";
 import { date, id } from "./mapping.helpers";
 
 class InboxMessageMapper implements IBidirectionalMapper<IInboxMessageRow, InboxMessageAggregate> {

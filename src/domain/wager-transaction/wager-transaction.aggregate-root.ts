@@ -12,9 +12,9 @@ import { MoneyValueObject } from "../money/money.value-object";
 import { LedgerDirection } from "../wallet-ledger-entry/wallet-ledger-entry.props";
 import { WagerTransactionKind as Kind, WagerTransactionStatus as Status } from "./wager-transaction.enums";
 import {
-  ICreateOpeningProps,
-  ICreateWagerTransactionProps,
-  IWagerTransactionProps,
+  type ICreateOpeningProps,
+  type ICreateWagerTransactionProps,
+  type IWagerTransactionProps,
 } from "./wager-transaction.props";
 import {
   INVALID_WAGER_AMOUNT,

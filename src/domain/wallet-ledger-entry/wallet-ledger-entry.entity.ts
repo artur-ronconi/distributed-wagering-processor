@@ -6,7 +6,7 @@ import {
   verifyAreValueObjects,
 } from "ddd-tool-kit";
 
-import { IWalletLedgerEntryProps, LedgerDirection } from "./wallet-ledger-entry.props";
+import { type IWalletLedgerEntryProps, LedgerDirection } from "./wallet-ledger-entry.props";
 import { UNBALANCED_LEDGER_ENTRY } from "./wallet-ledger-entry.errors";
 
 class WalletLedgerEntryEntity extends Entity<IWalletLedgerEntryProps> {

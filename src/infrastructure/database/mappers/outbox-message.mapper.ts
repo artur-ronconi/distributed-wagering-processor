@@ -1,7 +1,7 @@
-import { IBidirectionalMapper } from "ddd-tool-kit";
+import { type IBidirectionalMapper } from "ddd-tool-kit";
 
 import { OutboxMessageAggregate } from "../../../domain/messaging/outbox-message/outbox-message.aggregate-root";
-import { IOutboxMessageRow } from "../schemas/outbox-message.schema";
+import { type IOutboxMessageRow } from "../schemas/outbox-message.schema";
 import { date, id } from "./mapping.helpers";
 
 class OutboxMessageMapper implements IBidirectionalMapper<IOutboxMessageRow, OutboxMessageAggregate> {

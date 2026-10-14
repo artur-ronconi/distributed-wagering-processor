@@ -4,7 +4,7 @@ import { Injectable } from "@nestjs/common";
 import { IdValueObject } from "ddd-tool-kit";
 
 import { ConcurrencyConflictError } from "../../../application/errors/concurrency-conflict.error";
-import { WalletRepository } from "../../../application/ports/wallet.repository";
+import { type WalletRepository } from "../../../application/ports/wallet.repository";
 import { WalletAggregate } from "../../../domain/wallet/wallet.aggregate-root";
 import { WalletLedgerEntryMapper } from "../mappers/wallet-ledger-entry.mapper";
 import { WalletMapper } from "../mappers/wallet.mapper";

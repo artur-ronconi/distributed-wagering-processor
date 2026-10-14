@@ -1,6 +1,6 @@
 import { Output, ValueObject } from "ddd-tool-kit";
 
-import { IMoneyValueObject, MoneyProps } from "./money.props";
+import { type IMoneyValueObject, type MoneyProps } from "./money.props";
 import {
   CurrencyMismatchError,
   INVALID_MONEY_AMOUNT,

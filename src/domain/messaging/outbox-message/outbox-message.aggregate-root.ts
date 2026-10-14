@@ -7,8 +7,8 @@ import {
   verifyAreValueObjects,
 } from "ddd-tool-kit";
 
-import { IOutboxEvent } from "./outbox-event.interface";
-import { IOutboxMessageProps } from "./outbox-message.props";
+import { type IOutboxEvent } from "./outbox-event.interface";
+import { type IOutboxMessageProps } from "./outbox-message.props";
 import { INVALID_OUTBOX_MESSAGE, OutboxMessageAlreadyPublishedError } from "./outbox-message.errors";
 
 class OutboxMessageAggregate extends Aggregate<IOutboxMessageProps> {

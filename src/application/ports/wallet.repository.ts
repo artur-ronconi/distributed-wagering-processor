@@ -13,4 +13,4 @@ interface WalletRepository {
   save(wallet: WalletAggregate, expectedVersion: number): Promise<void>;
 }
 
-export { WALLET_REPOSITORY, WalletRepository };
+export { WALLET_REPOSITORY, type WalletRepository };

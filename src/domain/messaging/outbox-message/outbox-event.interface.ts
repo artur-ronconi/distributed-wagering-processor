@@ -7,4 +7,4 @@ interface IOutboxEvent {
   toJSON(): Record<string, unknown>;
 }
 
-export { IOutboxEvent };
+export { type IOutboxEvent };

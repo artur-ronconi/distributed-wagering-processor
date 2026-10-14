@@ -24,4 +24,4 @@ const InboxMessageSchema = new EntitySchema<IInboxMessageRow>({
   },
 });
 
-export { InboxMessageSchema, IInboxMessageRow };
+export { InboxMessageSchema, type IInboxMessageRow };

@@ -1,6 +1,6 @@
 import { HttpStatus } from "ddd-tool-kit";
 
-import { IDomainError } from "../../domain/shared/domain-error";
+import { type IDomainError } from "../../domain/shared/domain-error";
 import { FailureCode } from "../../domain/shared/failure-code";
 
 const TRANSIENT_FAILURE: IDomainError = {

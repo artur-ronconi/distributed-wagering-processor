@@ -9,4 +9,4 @@ interface InboxMessageRepository {
   save(message: InboxMessageAggregate): Promise<void>;
 }
 
-export { INBOX_MESSAGE_REPOSITORY, InboxMessageRepository };
+export { INBOX_MESSAGE_REPOSITORY, type InboxMessageRepository };

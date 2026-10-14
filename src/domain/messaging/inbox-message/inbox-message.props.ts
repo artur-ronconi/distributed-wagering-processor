@@ -1,4 +1,4 @@
-import { DateValueObject, IBaseDomainAggregate } from "ddd-tool-kit";
+import { DateValueObject, type IBaseDomainAggregate } from "ddd-tool-kit";
 
 /** createdAt (from Aggregate) is the moment the message was received. */
 interface IInboxMessageProps extends IBaseDomainAggregate {
@@ -14,4 +14,4 @@ interface IReceiveInboxProps {
   payloadHash: string;
 }
 
-export { IInboxMessageProps, IReceiveInboxProps };
+export { type IInboxMessageProps, type IReceiveInboxProps };

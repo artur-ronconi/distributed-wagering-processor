@@ -26,4 +26,4 @@ const WalletSchema = new EntitySchema<IWalletRow>({
   },
 });
 
-export { WalletSchema, IWalletRow };
+export { WalletSchema, type IWalletRow };

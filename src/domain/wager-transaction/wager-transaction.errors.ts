@@ -1,5 +1,5 @@
 import { HttpStatus } from "ddd-tool-kit";
-import { IDomainError } from "../shared/domain-error";
+import { type IDomainError } from "../shared/domain-error";
 import { FailureCode } from "../shared/failure-code";
 
 const INVALID_WAGER_TRANSACTION: IDomainError = {

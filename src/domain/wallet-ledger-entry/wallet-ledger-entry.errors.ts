@@ -1,5 +1,5 @@
 import { HttpStatus } from "ddd-tool-kit";
-import { IDomainError } from "../shared/domain-error";
+import { type IDomainError } from "../shared/domain-error";
 import { FailureCode } from "../shared/failure-code";
 
 // Should never reach the provider: the Wallet only builds balanced entries.

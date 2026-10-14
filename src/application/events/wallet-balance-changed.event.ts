@@ -1,8 +1,8 @@
-import { MoneyProps } from "../../domain/money/money.props";
+import { type MoneyProps } from "../../domain/money/money.props";
 import { LedgerDirection } from "../../domain/wallet-ledger-entry/wallet-ledger-entry.props";
 import { WalletAggregate } from "../../domain/wallet/wallet.aggregate-root";
 import { WalletLedgerEntryEntity } from "../../domain/wallet-ledger-entry/wallet-ledger-entry.entity";
-import { EventContext, IntegrationEvent } from "./integration-event";
+import { type EventContext, IntegrationEvent } from "./integration-event";
 
 interface WalletBalanceChangedData {
   walletId: string;
@@ -33,4 +33,4 @@ class WalletBalanceChanged extends IntegrationEvent<WalletBalanceChangedData> {
   }
 }
 
-export { WalletBalanceChanged, WalletBalanceChangedData };
+export { WalletBalanceChanged, type WalletBalanceChangedData };
