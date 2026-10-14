@@ -12,7 +12,7 @@ Ela é deduplicação de **transporte** (a mensagem). A idempotency key + `paylo
 
 Cada registro da inbox tem ciclo de vida próprio (`receive` → `markProcessed`), não pertence a nenhum outro aggregate e é salvo sozinho pelo seu repository. Por isso é um **aggregate** (`Aggregate` do toolkit), formado só pelo root.
 
-Não é um conceito de negócio. É um mecanismo técnico de mensageria, então fica no módulo `src/domain/messaging/`, separado de Wallet e WagerTransaction.
+Não é um conceito de negócio. É um mecanismo técnico de mensageria, então fica no módulo `src/modules/messaging/`, separado de Wallet e WagerTransaction.
 
 ## Regras
 

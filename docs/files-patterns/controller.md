@@ -11,8 +11,8 @@
 ```ts
 import { Body, Controller, Headers, HttpCode, HttpStatus, Post } from "@nestjs/common";
 
-import { CreateAnyService } from "../../application/use-cases/create-any/create-any.service";
-import { ICreateAnyServiceOutput } from "../../application/use-cases/create-any/create-any.output";
+import { CreateAnyService } from "../../domain/usecases/create-any/create-any.usecase";
+import { ICreateAnyServiceOutput } from "../../domain/usecases/create-any/create-any.output";
 import { CreateAnyRequestDto } from "../dtos/create-any.request.dto";
 import { getCorrectNestjsErrorByOutput } from "../errors/get-correct-nestjs-error-by-output";
 

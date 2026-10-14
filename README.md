@@ -125,10 +125,15 @@ Configuração por variáveis de ambiente (ver `.env.example` e `src/config/app-
 
 ```
 src/
-  domain/          Money, Wallet (+ lançamentos), WagerTransaction, Inbox/Outbox — TypeScript puro + ddd-tool-kit
-  application/     use cases, WagerTransactionProcessor, portas, eventos de integração, hash de idempotência
-  infrastructure/  MikroORM (schemas, migration, repositories, queries), SQS, métricas, health
-  presentation/    controllers HTTP + Swagger, consumer SQS, workers (outbox e referências pendentes)
+  config/          configuração e composição (MikroORM, lista de schemas)
+  shared/          kernel compartilhado: failure codes, erros, unit of work, SQS client, métricas, health, HTTP comum, Swagger
+  modules/
+    wallet/              carteira, dinheiro (Money) e lançamentos do ledger
+    wager-transaction/   BET/WIN/LOSS/REFUND/ROLLBACK: rota HTTP, consumer SQS, worker de pendências
+    messaging/           inbox, outbox, eventos de integração e publicação no SQS
+      └─ cada módulo: domain/ (aggregate, events, mappers, services = interfaces, usecases)
+                      presentation/ (controllers, consumers, producers)
+                      infrastructure/ (database, services = implementações)
 test/
   unit/  integration/  concurrency/
 docs/              requisitos condensados, um arquivo por domínio e por rota

@@ -337,7 +337,7 @@ OutboxMessageAggregate (messaging)
 | Money in memory as `bigint` cents; `from` requires exactly 2 decimals and never rounds | @docs/domain/money.md |
 | Our ids are `IdValueObject` (16 chars, `char(16)`), external ids are strings | @docs/domain/shared.md |
 | Ledger entries are children of `WalletAggregate`; only new entries in memory | @docs/domain/wallet.md |
-| Inbox and outbox are aggregates of one in `src/domain/messaging/` | @docs/domain/inbox-message.md, @docs/domain/outbox-message.md |
+| Inbox and outbox are aggregates of one in the `src/modules/messaging/` module | @docs/domain/inbox-message.md, @docs/domain/outbox-message.md |
 | `observedBalance` stored on the transaction to answer replays with the original balance | @docs/domain/wager-transaction.md |
 | `WALLET_NOT_FOUND` is not persisted (no wallet to reference) | @docs/domain/shared.md |
 | `422` for business rejection with the transaction result as body; `200` for replay of `PROCESSED` | @docs/routes/submit-wager-transaction.md |

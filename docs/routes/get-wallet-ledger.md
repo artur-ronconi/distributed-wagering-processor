@@ -93,14 +93,12 @@ GetWalletLedgerController
 ## Arquivos
 
 ```
-src/presentation/http/wallets/get-wallet-ledger.controller.ts
-src/presentation/http/wallets/ledger-page.response.dto.ts
-src/application/use-cases/get-wallet-ledger/get-wallet-ledger.service.ts
-src/application/use-cases/get-wallet-ledger/get-wallet-ledger.input.ts
-src/application/use-cases/get-wallet-ledger/get-wallet-ledger.output.ts
-src/application/ports/wallet-ledger.query.ts          ← porta de leitura
-src/infrastructure/database/queries/mikro-orm.wallet-ledger.query.ts
-src/application/pagination/ledger-cursor.ts           ← encode/decode do cursor
+src/modules/wallet/presentation/controllers/get-wallet-ledger.controller.ts
+src/modules/wallet/presentation/controllers/dtos/ledger.dto.ts
+src/modules/wallet/domain/usecases/get-wallet-ledger/get-wallet-ledger.usecase.ts
+src/modules/wallet/domain/usecases/get-wallet-ledger/ledger-cursor.ts        ← encode/decode do cursor
+src/modules/wallet/domain/services/wallet-ledger.query.ts                    ← porta de leitura (interface)
+src/modules/wallet/infrastructure/database/queries/mikro-orm.wallet-ledger.query.ts
 ```
 
 ### wallet-ledger.query.ts (porta)

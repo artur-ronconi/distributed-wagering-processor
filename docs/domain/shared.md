@@ -12,22 +12,57 @@ Base: `ddd-tool-kit@2.3.0`. O `OLD_README.md` é a fonte da verdade.
 | @docs/domain/wager-transaction.md | `WagerTransactionAggregate` | Aggregate Root com ciclo de vida |
 | @docs/domain/inbox-message.md | `InboxMessageAggregate` | Aggregate de um só (mensageria) |
 | @docs/domain/outbox-message.md | `OutboxMessageAggregate` | Aggregate de um só (mensageria) |
-| @docs/domain/integration-event.md | `IntegrationEvent` + 4 eventos | Camada **application** (não é domínio) |
+| @docs/domain/integration-event.md | `IntegrationEvent` + 4 eventos | base em `modules/messaging/domain/events`, eventos em `domain/events` de cada módulo |
 
 ## Estrutura de pastas
 
 ```
-src/domain/
-  shared/               domain-error.ts, failure-code.ts
-  money/                money.props.ts, money.errors.ts, money.value-object.ts
-  wallet/               wallet.props.ts, wallet.errors.ts, wallet.aggregate-root.ts
-  wager-transaction/    wager-transaction.enums.ts, .props.ts, .errors.ts, .aggregate-root.ts
-  wallet-ledger-entry/  wallet-ledger-entry.props.ts, .errors.ts, .entity.ts
-  messaging/            mecanismos técnicos, não conceitos de negócio
-    inbox-message/      inbox-message.props.ts, .errors.ts, .aggregate-root.ts
-    outbox-message/     outbox-event.interface.ts, outbox-message.props.ts, .errors.ts, .aggregate-root.ts
-src/application/events/ integration-event.ts + uma subclasse por evento
+src/
+  config/                       app-config.ts, mikro-orm.config.ts, entity-schemas.ts (composição)
+  shared/
+    domain/                     domain-error.ts, failure-code.ts
+    errors/                     erros de aplicação (transient, duplicate key, concurrency) e service-failure
+    services/                   interfaces: unit-of-work, metrics, service
+    utils/                      canonical-hash.ts (JSON canônico + SHA-256)
+    infrastructure/             database (unit of work, migrations, tradução de erros), services (prometheus, sqs client, health)
+    presentation/               http (filtro, guard, pipe, correlation id), controllers (health, metrics), swagger
+  modules/
+    wallet/                     money e wallet-ledger-entry ficam dentro do domínio da wallet
+      domain/
+        aggregate/
+          aggregate-root/       wallet.aggregate-root.ts, .props.ts, .errors.ts
+          entities/             wallet-ledger-entry/ (entity, props, errors)
+          value-objects/        money/ (value-object, props, errors)
+        events/                 wallet-balance-changed.event.ts
+        mappers/                wallet-view.mapper.ts (aggregate → resposta)
+        services/               só interfaces: wallet.repository.ts, wallet-ledger.query.ts, ledger-reconciliation.query.ts
+        usecases/               create-wallet/, get-wallet/, get-wallet-ledger/, reconcile-wallet/
+      presentation/controllers/ controllers HTTP + dtos/
+      infrastructure/database/  schemas/, mappers/ (linha ⇄ aggregate), repositories/, queries/
+    wager-transaction/
+      domain/
+        aggregate/aggregate-root/  wager-transaction.aggregate-root.ts, .enums.ts, .props.ts, .errors.ts
+        events/                    wager-transaction-processed/rejected/pending-reference.event.ts
+        mappers/                   wager-transaction-view.mapper.ts
+        services/                  wager-transaction.repository.ts (interface)
+        usecases/                  submit-wager-transaction/, process-wager-transaction/ (processor), get-*, resolve-pending-references/
+      presentation/
+        controllers/               HTTP + dtos/
+        consumers/                 wager-transactions.consumer.ts (SQS), pending-reference.consumer.ts
+      infrastructure/database/     schemas/, mappers/, repositories/
+    messaging/                     mecanismos técnicos: inbox, outbox e eventos de integração
+      domain/
+        aggregate/aggregate-root/  inbox-message/, outbox-message/ (+ outbox-event.interface.ts)
+        events/                    integration-event.ts (classe abstrata base dos eventos)
+        services/                  interfaces: inbox/outbox repositories, event-publisher
+        usecases/                  publish-outbox/
+      presentation/producers/      outbox-publisher.producer.ts
+      infrastructure/              database/ (schemas, mappers, repositories), services/ (sqs-event.publisher.ts)
 ```
+
+Os mappers de **visão** (aggregate → resposta) ficam em `domain/mappers`. Os mappers do **banco** (linha do MikroORM ⇄ aggregate) ficam em `infrastructure/database/mappers`, porque dependem do formato das tabelas.
+
+Cada módulo é um módulo Nest (`wallet.module.ts`, `wager-transaction.module.ts`, `messaging.module.ts`). O `SharedModule` é global.
 
 ## Aggregates e repositories
 

@@ -14,7 +14,7 @@ O **conteúdo** do evento é responsabilidade do `IntegrationEvent` (@docs/domai
 
 Cada mensagem tem ciclo de vida próprio (`enqueue` → `scheduleRetry`… → `markPublished`), é carregada e salva sozinha pelo publisher e não pertence a nenhum outro aggregate. Por isso é um **aggregate** (`Aggregate` do toolkit), formado só pelo root.
 
-Não é um conceito de negócio. É um mecanismo técnico de mensageria, então fica no módulo `src/domain/messaging/`, separado de Wallet e WagerTransaction.
+Não é um conceito de negócio. É um mecanismo técnico de mensageria, então fica no módulo `src/modules/messaging/`, separado de Wallet e WagerTransaction.
 
 ## Regras
 

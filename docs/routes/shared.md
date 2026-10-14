@@ -121,17 +121,15 @@ Toda resposta de erro tem o mesmo corpo:
 
 ## Estrutura de arquivos por rota
 
-Seguindo @docs/files-patterns/controller.md e @docs/files-patterns/service.md, cada rota tem um controller e um service próprios:
+Cada rota pertence a um módulo (`wallet`, `wager-transaction`) e tem um controller e um use case próprios (padrões em @docs/files-patterns/controller.md e @docs/files-patterns/service.md):
 
 ```
-src/presentation/http/<recurso>/
-  <acao>.controller.ts          ← só traduz HTTP ⇄ service
-  <acao>.request.dto.ts         ← formato do body (class-validator)
-  <acao>.response.dto.ts
-src/application/use-cases/<acao>/
-  <acao>.service.ts             ← regra de orquestração, abre a transação
-  <acao>.input.ts
-  <acao>.output.ts
+src/modules/<modulo>/
+  presentation/controllers/<acao>.controller.ts   ← só traduz HTTP ⇄ use case (+ decorators do Swagger)
+  presentation/controllers/dtos/*.dto.ts          ← formato do body/resposta (class-validator + @ApiProperty)
+  domain/usecases/<acao>/<acao>.usecase.ts        ← orquestração, abre a transação
+  domain/usecases/<acao>/<acao>.input.ts
+  domain/mappers/*-view.mapper.ts                 ← aggregate → resposta
 ```
 
 ## Validação: DTO × domínio

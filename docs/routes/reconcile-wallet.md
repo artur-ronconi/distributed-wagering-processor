@@ -101,13 +101,11 @@ A divergência é um **resultado** da verificação, não um erro da requisiçã
 ## Arquivos
 
 ```
-src/presentation/http/wallets/reconcile-wallet.controller.ts
-src/presentation/http/wallets/reconciliation.response.dto.ts
-src/application/use-cases/reconcile-wallet/reconcile-wallet.service.ts
-src/application/use-cases/reconcile-wallet/reconcile-wallet.input.ts
-src/application/use-cases/reconcile-wallet/reconcile-wallet.output.ts
-src/application/ports/ledger-reconciliation.query.ts
-src/infrastructure/database/queries/mikro-orm.ledger-reconciliation.query.ts
+src/modules/wallet/presentation/controllers/reconcile-wallet.controller.ts
+src/modules/wallet/presentation/controllers/dtos/reconciliation.dto.ts
+src/modules/wallet/domain/usecases/reconcile-wallet/reconcile-wallet.usecase.ts
+src/modules/wallet/domain/services/ledger-reconciliation.query.ts            ← porta (interface)
+src/modules/wallet/infrastructure/database/queries/mikro-orm.ledger-reconciliation.query.ts
 ```
 
 ## Testes (integração)

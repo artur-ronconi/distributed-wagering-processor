@@ -59,12 +59,10 @@ Mesmo corpo de @docs/routes/get-wager-transaction.md.
 ## Arquivos
 
 ```
-src/presentation/http/wagering/get-provider-wager-transaction.controller.ts
-src/presentation/http/wagering/wager-transaction.response.dto.ts      (compartilhado)
-src/presentation/http/wagering/wager-transaction-dto.mapper.ts        (compartilhado)
-src/application/use-cases/get-provider-wager-transaction/get-provider-wager-transaction.service.ts
-src/application/use-cases/get-provider-wager-transaction/get-provider-wager-transaction.input.ts
-src/application/use-cases/get-provider-wager-transaction/get-provider-wager-transaction.output.ts
+src/modules/wager-transaction/presentation/controllers/get-provider-wager-transaction.controller.ts
+src/modules/wager-transaction/presentation/controllers/dtos/wager-transaction.dto.ts   (compartilhado)
+src/modules/wager-transaction/domain/usecases/get-provider-wager-transaction/get-provider-wager-transaction.usecase.ts
+src/modules/wager-transaction/domain/mappers/wager-transaction-view.mapper.ts          (compartilhado)
 ```
 
 O controller fica com `@Controller("providers")` e `@Get(":providerId/wagering/transactions/:externalTransactionId")`.

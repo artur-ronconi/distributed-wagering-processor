@@ -180,14 +180,16 @@ O consumer registra a inbox (@docs/domain/inbox-message.md), chama o **mesmo** s
 ## Arquivos
 
 ```
-src/presentation/http/wagering/submit-wager-transaction.controller.ts
-src/presentation/http/wagering/submit-wager-transaction.request.dto.ts
-src/presentation/http/wagering/wager-transaction-result.response.dto.ts
-src/presentation/sqs/wager-transactions.consumer.ts
-src/application/use-cases/submit-wager-transaction/submit-wager-transaction.service.ts
-src/application/use-cases/submit-wager-transaction/submit-wager-transaction.input.ts
-src/application/use-cases/submit-wager-transaction/submit-wager-transaction.output.ts
-src/application/idempotency/canonical-payload-hash.ts
+src/modules/wager-transaction/presentation/controllers/submit-wager-transaction.controller.ts
+src/modules/wager-transaction/presentation/controllers/dtos/wager-transaction.dto.ts   (SubmitWagerTransactionRequestDto, WagerTransactionResultDto)
+src/modules/wager-transaction/presentation/consumers/wager-transactions.consumer.ts     ← SQS
+src/modules/wager-transaction/domain/usecases/submit-wager-transaction/submit-wager-transaction.usecase.ts
+src/modules/wager-transaction/domain/usecases/submit-wager-transaction/submit-wager-transaction.input.ts
+src/modules/wager-transaction/domain/usecases/submit-wager-transaction/submit-wager-transaction.output.ts
+src/modules/wager-transaction/domain/usecases/submit-wager-transaction/submit-wager-transaction.errors.ts
+src/modules/wager-transaction/domain/usecases/submit-wager-transaction/wager-payload-hash.ts
+src/modules/wager-transaction/domain/usecases/process-wager-transaction/wager-transaction.processor.ts   ← regras compartilhadas
+src/shared/utils/canonical-hash.ts                                   ← JSON canônico + SHA-256
 ```
 
 ### submit-wager-transaction.output.ts
@@ -208,7 +210,7 @@ export { ISubmitWagerTransactionServiceOutput };
 ```
 
 ### Status no controller (depende do resultado)
-`MISSING_IDEMPOTENCY_KEY` fica em `src/application/use-cases/submit-wager-transaction/submit-wager-transaction.errors.ts` (`code: FailureCode.InvalidPayload`, `400`).
+`MISSING_IDEMPOTENCY_KEY` fica em `src/modules/wager-transaction/domain/usecases/submit-wager-transaction/submit-wager-transaction.errors.ts` (`code: FailureCode.InvalidPayload`, `400`).
 
 ```ts
 @Post()

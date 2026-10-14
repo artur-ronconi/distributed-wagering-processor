@@ -56,12 +56,10 @@ Mesmo formato da resposta de `POST /wallets` (`wallet.response.dto.ts` compartil
 ## Arquivos
 
 ```
-src/presentation/http/wallets/get-wallet.controller.ts
-src/presentation/http/wallets/wallet.response.dto.ts
-src/presentation/http/wallets/wallet-dto.mapper.ts
-src/application/use-cases/get-wallet/get-wallet.service.ts
-src/application/use-cases/get-wallet/get-wallet.input.ts
-src/application/use-cases/get-wallet/get-wallet.output.ts
+src/modules/wallet/presentation/controllers/get-wallet.controller.ts
+src/modules/wallet/presentation/controllers/dtos/wallet.dto.ts
+src/modules/wallet/domain/usecases/get-wallet/get-wallet.usecase.ts
+src/modules/wallet/domain/mappers/wallet-view.mapper.ts
 ```
 
 ### wallet-dto.mapper.ts

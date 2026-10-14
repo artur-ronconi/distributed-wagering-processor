@@ -74,13 +74,12 @@ Esta rota não tem idempotency key (o OLD_README não pede). Um reenvio depois d
 ## Arquivos
 
 ```
-src/presentation/http/wallets/create-wallet.controller.ts
-src/presentation/http/wallets/create-wallet.request.dto.ts
-src/presentation/http/wallets/wallet.response.dto.ts        (compartilhado com GET /wallets/:walletId)
-src/presentation/http/wallets/wallet-dto.mapper.ts
-src/application/use-cases/create-wallet/create-wallet.service.ts
-src/application/use-cases/create-wallet/create-wallet.input.ts
-src/application/use-cases/create-wallet/create-wallet.output.ts
+src/modules/wallet/presentation/controllers/create-wallet.controller.ts
+src/modules/wallet/presentation/controllers/dtos/wallet.dto.ts            (CreateWalletRequestDto, WalletResponseDto)
+src/modules/wallet/presentation/controllers/dtos/money.dto.ts
+src/modules/wallet/domain/usecases/create-wallet/create-wallet.usecase.ts
+src/modules/wallet/domain/usecases/create-wallet/create-wallet.input.ts
+src/modules/wallet/domain/mappers/wallet-view.mapper.ts                    (WalletView, compartilhado com GET /wallets/:walletId)
 ```
 
 ### create-wallet.request.dto.ts

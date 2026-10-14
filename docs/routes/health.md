@@ -66,10 +66,10 @@ Assim que recebe `SIGTERM`, a instância passa a responder `503` no `/health/rea
 Com `@nestjs/terminus` (`HealthCheckService` e indicadores customizados para PostgreSQL via MikroORM e para SQS), ou um controller simples. Os dois atendem ao OLD_README.
 
 ```
-src/presentation/http/health/health.controller.ts
-src/infrastructure/health/postgres.health-indicator.ts
-src/infrastructure/health/sqs.health-indicator.ts
-src/infrastructure/lifecycle/shutdown-state.ts      ← flag lida pelo /health/ready no SIGTERM
+src/shared/presentation/controllers/health.controller.ts
+src/shared/presentation/controllers/dtos/health.dto.ts
+src/shared/infrastructure/services/dependency-checks.ts             ← PostgreSQL e SQS, timeout de 1s
+src/shared/infrastructure/services/shutdown-state.ts                ← flag lida pelo /health/ready no SIGTERM
 ```
 
 O `docker-compose.yml` usa `/health/ready` no `healthcheck` do serviço da app, para os testes de integração só começarem quando tudo estiver de pé.

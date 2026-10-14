@@ -1,7 +1,7 @@
 > _**Observation:**_  
 > _You will need to replace "Any" with the correct names when writing the files._
 >
-> _A service is a **use case** in the application layer. Rules:_
+> _A service is a **use case**: `src/modules/<module>/domain/usecases/<action>/<action>.usecase.ts` (class `<Action>UseCase`). Rules:_
 > _- The same service is called by the HTTP controller **and** by the SQS consumer (OLD_README §10). It never knows where the input came from._
 > _- The service owns the transaction boundary through `UnitOfWork`. Everything that changes money (transaction, wallet, ledger, outbox, and inbox when called by the consumer) happens inside **one** `uow.transactional`._
 > _- Integration events are created here and saved to the outbox inside the same transaction. Never publish to SQS from a service._
@@ -53,8 +53,8 @@ export { IWithdrawAnyServiceOutput };
 ## common.errors.ts
 ```ts
 import { HttpStatus } from "ddd-tool-kit";
-import { IDomainError } from "../../domain/shared/domain-error";
-import { FailureCode } from "../../domain/shared/failure-code";
+import { IDomainError } from "../../../../../shared/domain/domain-error";
+import { FailureCode } from "../../../../../shared/domain/failure-code";
 
 const TRANSIENT_FAILURE: IDomainError = {
   code: FailureCode.TransientFailure,

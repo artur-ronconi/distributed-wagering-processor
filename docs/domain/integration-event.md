@@ -2,7 +2,7 @@
 
 OLD_README §11. Convenções gerais em @docs/domain/shared.md.
 
-> **Camada:** `src/application/events/`. Não é domínio. Fica documentado aqui porque o `OutboxMessageAggregate` depende dele (pela interface `IOutboxEvent`, sem import).
+> **Onde fica:** a classe base em `src/modules/messaging/domain/events/integration-event.ts`; cada evento no `domain/events` do seu módulo (`wallet`, `wager-transaction`). O `OutboxMessageAggregate` depende só da interface `IOutboxEvent`, sem importar os eventos.
 
 ## Papel
 

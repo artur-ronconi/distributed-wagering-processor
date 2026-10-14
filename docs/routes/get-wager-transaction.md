@@ -70,12 +70,11 @@ Transações internas (`OPENING`) também são encontradas aqui. Elas aparecem n
 ## Arquivos
 
 ```
-src/presentation/http/wagering/get-wager-transaction.controller.ts
-src/presentation/http/wagering/wager-transaction.response.dto.ts      (compartilhado com a rota por provedor)
-src/presentation/http/wagering/wager-transaction-dto.mapper.ts        (compartilhado)
-src/application/use-cases/get-wager-transaction/get-wager-transaction.service.ts
-src/application/use-cases/get-wager-transaction/get-wager-transaction.input.ts
-src/application/use-cases/get-wager-transaction/get-wager-transaction.output.ts
+src/modules/wager-transaction/presentation/controllers/get-wager-transaction.controller.ts
+src/modules/wager-transaction/presentation/controllers/dtos/wager-transaction.dto.ts   (WagerTransactionDto, compartilhado com a rota por provedor)
+src/modules/wager-transaction/presentation/controllers/wager-transaction.examples.ts   (compartilhado)
+src/modules/wager-transaction/domain/usecases/get-wager-transaction/get-wager-transaction.usecase.ts
+src/modules/wager-transaction/domain/mappers/wager-transaction-view.mapper.ts          (compartilhado)
 ```
 
 ### wager-transaction-dto.mapper.ts

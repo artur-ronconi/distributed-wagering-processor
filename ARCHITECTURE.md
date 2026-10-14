@@ -29,7 +29,13 @@ Um único serviço NestJS. Cada processo pode ligar ou desligar quatro entradas:
 
 ## 2. Camadas e modelagem (DDD)
 
-`domain → application → infrastructure / presentation`. O domínio é TypeScript puro sobre o `ddd-tool-kit`, sem NestJS e sem ORM.
+O código é organizado **por módulo** (`wallet`, `wager-transaction`, `messaging`) e, dentro de cada módulo, por camada:
+
+- `domain/` — aggregates (`aggregate-root`, `entities`, `value-objects`), eventos, mappers de visão, `services` (só interfaces) e `usecases`;
+- `presentation/` — `controllers` (HTTP), `consumers` (SQS e worker de pendências) e `producers` (publisher da outbox);
+- `infrastructure/` — `database` (schemas, mappers linha ⇄ aggregate, repositories, queries) e `services` (implementações, como o publisher SQS).
+
+O que é comum fica em `src/shared` (failure codes, erros, unit of work, SQS client, métricas, health, HTTP comum). As classes de aggregate são TypeScript puro sobre o `ddd-tool-kit`, sem NestJS e sem ORM. As dependências apontam para o domínio: a infraestrutura implementa as interfaces de `domain/services`. Cada módulo é um módulo Nest. `wallet` e `wager-transaction` dependem um do outro (criar uma wallet gera a transação interna OPENING; uma aposta mexe na wallet), resolvido com `forwardRef`.
 
 | Aggregate | Contém | Repository |
 |---|---|---|
@@ -158,7 +164,7 @@ Mantive as duas. A inbox é gravada na mesma transação, então "processei" e "
 
 ## 12. Autenticação
 
-**Decisão: não implementada** (não pontua; o tempo foi para correção financeira e concorrência). O ponto de extensão é o `AuthGuard` global (`src/presentation/http/common/auth.guard.ts`). Hoje ele é no-op, e as rotas `@Public()` (health, métricas, docs) já ficam de fora.
+**Decisão: não implementada** (não pontua; o tempo foi para correção financeira e concorrência). O ponto de extensão é o `AuthGuard` global (`src/shared/presentation/http/auth.guard.ts`). Hoje ele é no-op, e as rotas `@Public()` (health, métricas, docs) já ficam de fora.
 
 Desenho para implementar:
 1. Subir um IdP externo (Keycloak ou Zitadel) no Compose, com um client por provedor (client credentials).

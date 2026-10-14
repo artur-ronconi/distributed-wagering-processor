@@ -18,20 +18,30 @@ Um único serviço NestJS (não é monorepo, não tem frontend).
 
 ```
 src/
-  domain/           → Money, Wallet, WagerTransaction, WalletLedgerEntry, InboxMessage, OutboxMessage, erros, FailureCode
-  application/      → use cases, portas (repositories, UnitOfWork, Clock, IdGenerator), integration events
-  infrastructure/   → MikroORM (schemas, migrations, repositories, mappers), SQS consumer, outbox publisher,
-                      pending-reference worker, logs e métricas
-  presentation/     → controllers HTTP, DTOs, health checks, AuthGuard
+  config/           → app-config, mikro-orm.config, lista de schemas (composição)
+  shared/           → kernel compartilhado: failure codes, erros, interfaces (unit of work, metrics),
+                      infra comum (migrations, SQS client, prometheus, health) e HTTP comum (filtro, guard, swagger)
+  modules/
+    wallet/             → wallet + money + wallet-ledger-entry
+    wager-transaction/  → BET/WIN/LOSS/REFUND/ROLLBACK, processor, consumer SQS, worker de pendências
+    messaging/          → inbox, outbox, eventos de integração, publisher
+      (cada módulo) domain/{aggregate/{aggregate-root,entities,value-objects},events,mappers,services,usecases}
+                    presentation/{controllers,consumers,producers}
+                    infrastructure/{database,services}
 test/
   unit/             → domínio puro
   integration/      → PostgreSQL e LocalStack reais em containers
   concurrency/      → paralelismo real, ≥ 3 instâncias
 docs/               → requirements.md, domain/, routes/, files-patterns/
 OLD_README.md       → enunciado do desafio (fonte da verdade)
-README.md           → README do projeto: setup e comandos (entregável, a criar)
-ARCHITECTURE.md     → decisões, trade-offs e limitações (entregável, a criar)
+README.md           → README do projeto: setup, comandos e mapa de testes
+ARCHITECTURE.md     → decisões, trade-offs e limitações
 ```
+
+Regras da estrutura:
+- `domain/services` só tem **interfaces** (portas). As implementações ficam em `infrastructure/` (`database/` para repositories e queries, `services/` para o resto).
+- `domain/mappers` são mappers de visão (aggregate → resposta). Mappers do banco (linha ⇄ aggregate) ficam em `infrastructure/database/mappers`.
+- Cada módulo é um módulo Nest (`<modulo>.module.ts`). `SharedModule` é global. `wallet` ⇄ `wager-transaction` usam `forwardRef` (criar wallet gera a transação OPENING).
 
 ## Comandos
 
