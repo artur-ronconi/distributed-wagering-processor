@@ -10,6 +10,9 @@ import { WALLET_REPOSITORY, type WalletRepository } from "../../interfaces/walle
 import { failureFrom } from "../../../../../shared/errors/service-failure";
 import { WagerTransactionProcessor } from "../../../../wager-transaction/domain/usecases/process-wager-transaction/wager-transaction.processor";
 import { type WalletView, WalletViewMapper } from "../../mappers/wallet-view.mapper";
+import { type EventContext } from "../../../../messaging/domain/events/integration-event";
+import { WagerTransactionProcessed } from "../../../../wager-transaction/domain/events/wager-transaction-processed.event";
+import { WalletBalanceChanged } from "../../events/wallet-balance-changed.event";
 import { MoneyValueObject } from "../../aggregate/value-objects/money/money.value-object";
 import { WagerTransactionAggregate } from "../../../../wager-transaction/domain/aggregate/aggregate-root/wager-transaction.aggregate-root";
 import { WalletAggregate } from "../../aggregate/aggregate-root/wallet.aggregate-root";
@@ -63,15 +66,19 @@ class CreateWalletUseCase {
     });
     if (openWallet.isFailure) return throwFailOutput(openWallet);
     const wallet = openWallet.result as WalletAggregate;
-    const openingEntry = wallet.newLedgerEntries[0] ?? null;
+    // Read before saving: the repository pulls the new entries. A positive initial balance always has one.
+    const [openingEntry] = wallet.newLedgerEntries;
 
     try {
       await this.uow.transactional(async () => {
         await this.wallets.insert(wallet);
         if (opening) {
           await this.transactions.insert(opening);
-          const ctx = { correlationId: input.correlationId, now: new Date() };
-          await this.processor.enqueue(this.processor.eventsFor(opening, wallet, openingEntry, ctx));
+          const ctx: EventContext = { correlationId: input.correlationId, now: new Date() };
+          await this.processor.enqueue([
+            WagerTransactionProcessed.from(opening, ctx),
+            WalletBalanceChanged.from(wallet, openingEntry, ctx),
+          ]);
         }
       });
     } catch (error) {

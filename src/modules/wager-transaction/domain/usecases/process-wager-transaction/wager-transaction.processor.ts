@@ -1,26 +1,24 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { DateValueObject, throwFailOutput } from "ddd-tool-kit";
 
-import { IntegrationEvent, type EventContext } from "../../../../messaging/domain/events/integration-event";
-import { WagerTransactionPendingReference } from "../../events/wager-transaction-pending-reference.event";
-import { WagerTransactionProcessed } from "../../events/wager-transaction-processed.event";
-import { WagerTransactionRejected } from "../../events/wager-transaction-rejected.event";
-import { WalletBalanceChanged } from "../../../../wallet/domain/events/wallet-balance-changed.event";
+import { type IntegrationEvent } from "../../../../messaging/domain/events/integration-event";
 import { OUTBOX_MESSAGE_REPOSITORY, type OutboxMessageRepository } from "../../../../messaging/domain/interfaces/outbox-message.repository";
 import { WAGER_TRANSACTION_REPOSITORY, type WagerTransactionRepository } from "../../interfaces/wager-transaction.repository";
 import { type IDomainError } from "../../../../../shared/domain/domain-error";
 import { FailureCode } from "../../../../../shared/domain/failure-code";
 import { OutboxMessageAggregate } from "../../../../messaging/domain/aggregate/aggregate-root/outbox-message/outbox-message.aggregate-root";
 import { WagerTransactionAggregate } from "../../aggregate/aggregate-root/wager-transaction.aggregate-root";
-import { WagerTransactionKind, WagerTransactionStatus } from "../../aggregate/aggregate-root/wager-transaction.enums";
+import { WagerTransactionKind } from "../../aggregate/aggregate-root/wager-transaction.enums";
 import { WalletAggregate } from "../../../../wallet/domain/aggregate/aggregate-root/wallet.aggregate-root";
 import { INSUFFICIENT_FUNDS, REVERSAL_WOULD_OVERDRAW } from "../../../../wallet/domain/aggregate/aggregate-root/wallet.errors";
 import { WalletLedgerEntryEntity } from "../../../../wallet/domain/aggregate/entities/wallet-ledger-entry/wallet-ledger-entry.entity";
 import { LedgerDirection } from "../../../../wallet/domain/aggregate/entities/wallet-ledger-entry/wallet-ledger-entry.props";
 
 type Decision =
-  /** The transaction is now PROCESSED or REJECTED. `entry` is set when the balance changed. */
-  | { outcome: "decided"; entry: WalletLedgerEntryEntity | null }
+  /** The transaction is now PROCESSED. `entry` is set when the balance changed. */
+  | { outcome: "processed"; entry: WalletLedgerEntryEntity | null }
+  /** The transaction is now REJECTED (`failureCode` is set). */
+  | { outcome: "rejected" }
   /** The referenced transaction does not exist (yet). The caller decides: wait, retry or give up. */
   | { outcome: "reference-missing" };
 
@@ -40,7 +38,7 @@ class WagerTransactionProcessor {
     const at = DateValueObject.init({ value: now }).result as DateValueObject;
     const reject = (code: FailureCode): Decision => {
       tx.reject(code, at, wallet.balance);
-      return { outcome: "decided", entry: null };
+      return { outcome: "rejected" };
     };
 
     if (wallet.playerId !== tx.playerId) return reject(FailureCode.WalletPlayerMismatch);
@@ -62,7 +60,7 @@ class WagerTransactionProcessor {
 
     if (!tx.affectsBalance()) {
       tx.markProcessed(reference?.id, at, wallet.balance);
-      return { outcome: "decided", entry: null };
+      return { outcome: "processed", entry: null };
     }
 
     const direction = tx.ledgerDirectionFor(reference ?? undefined);
@@ -78,29 +76,7 @@ class WagerTransactionProcessor {
     if (movement.isFailure) return reject((movement.result as IDomainError).code);
 
     tx.markProcessed(reference?.id, at, wallet.balance);
-    return { outcome: "decided", entry: movement.result as WalletLedgerEntryEntity };
-  }
-
-  /** Integration events for the transaction's current state. */
-  eventsFor(
-    tx: WagerTransactionAggregate,
-    wallet: WalletAggregate,
-    entry: WalletLedgerEntryEntity | null,
-    ctx: EventContext,
-  ): IntegrationEvent<unknown>[] {
-    switch (tx.status) {
-      case WagerTransactionStatus.Processed:
-        return [
-          WagerTransactionProcessed.from(tx, ctx),
-          ...(entry ? [WalletBalanceChanged.from(wallet, entry, ctx)] : []),
-        ];
-      case WagerTransactionStatus.Rejected:
-        return [WagerTransactionRejected.from(tx, ctx)];
-      case WagerTransactionStatus.PendingReference:
-        return [WagerTransactionPendingReference.from(tx, ctx)];
-      default:
-        return [];
-    }
+    return { outcome: "processed", entry: movement.result as WalletLedgerEntryEntity };
   }
 
   /** Writes the events to the outbox, in the caller's transaction. */

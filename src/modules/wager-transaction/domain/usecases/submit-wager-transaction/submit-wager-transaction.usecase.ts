@@ -13,6 +13,11 @@ import { WAGER_TRANSACTION_REPOSITORY, type WagerTransactionRepository } from ".
 import { WALLET_REPOSITORY, type WalletRepository } from "../../../../wallet/domain/interfaces/wallet.repository";
 import { AbortTransaction, failureFrom } from "../../../../../shared/errors/service-failure";
 import { WagerTransactionProcessor } from "../process-wager-transaction/wager-transaction.processor";
+import { type EventContext, type IntegrationEvent } from "../../../../messaging/domain/events/integration-event";
+import { WagerTransactionPendingReference } from "../../events/wager-transaction-pending-reference.event";
+import { WagerTransactionProcessed } from "../../events/wager-transaction-processed.event";
+import { WagerTransactionRejected } from "../../events/wager-transaction-rejected.event";
+import { WalletBalanceChanged } from "../../../../wallet/domain/events/wallet-balance-changed.event";
 import { toResultView, type WagerTransactionResultView } from "../../mappers/wager-transaction-view.mapper";
 import { InboxMessageAggregate } from "../../../../messaging/domain/aggregate/aggregate-root/inbox-message/inbox-message.aggregate-root";
 import { MoneyValueObject } from "../../../../wallet/domain/aggregate/value-objects/money/money.value-object";
@@ -144,25 +149,31 @@ class SubmitWagerTransactionUseCase {
     }
 
     const now = new Date();
+    const ctx: EventContext = { correlationId: input.correlationId, causationId: input.causationId, now };
     const expectedVersion = wallet.version;
     const decision = await this.processor.decide(transaction, wallet, now);
-    if (decision.outcome === "reference-missing") {
-      transaction.markPendingReference(
-        DateValueObject.init({ value: new Date(now.getTime() + this.config.pendingReference.baseDelayMs) })
-          .result as DateValueObject,
-      );
+
+    let events: IntegrationEvent<unknown>[];
+    switch (decision.outcome) {
+      case "processed":
+        events = [WagerTransactionProcessed.from(transaction, ctx)];
+        if (decision.entry) events.push(WalletBalanceChanged.from(wallet, decision.entry, ctx));
+        break;
+      case "rejected":
+        events = [WagerTransactionRejected.from(transaction, ctx)];
+        break;
+      case "reference-missing":
+        transaction.markPendingReference(
+          DateValueObject.init({ value: new Date(now.getTime() + this.config.pendingReference.baseDelayMs) })
+            .result as DateValueObject,
+        );
+        events = [WagerTransactionPendingReference.from(transaction, ctx)];
+        break;
     }
-    const entry = decision.outcome === "decided" ? decision.entry : null;
 
     await this.transactions.insert(transaction);
-    if (entry) await this.wallets.save(wallet, expectedVersion);
-    await this.processor.enqueue(
-      this.processor.eventsFor(transaction, wallet, entry, {
-        correlationId: input.correlationId,
-        causationId: input.causationId,
-        now,
-      }),
-    );
+    if (decision.outcome === "processed" && decision.entry) await this.wallets.save(wallet, expectedVersion);
+    await this.processor.enqueue(events);
 
     return finish(toResultView(transaction, false));
   }
