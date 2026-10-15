@@ -37,5 +37,5 @@ coverage/
 .claude/
 prompts/
 
-# Local flow visualizer (dev only, not part of the delivery)
-frontend/
+# Local frontends (dev tools, not part of the delivery)
+frontends/
