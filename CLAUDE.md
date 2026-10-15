@@ -47,7 +47,8 @@ Regras da estrutura:
 
 ```bash
 bun install
-bun run docker:up              # PostgreSQL + LocalStack (SQS) + app, espera tudo ficar saudável
+bun run start                 # PostgreSQL + LocalStack (SQS) + app em segundo plano, espera tudo ficar saudável
+bun run destroy               # para tudo e apaga containers, volume do banco, filas e imagem da app
 bun run dev                   # app com watch
 bun run migration:up          # aplica migrations
 bun run migration:down        # reverte (migrations precisam ser reversíveis)

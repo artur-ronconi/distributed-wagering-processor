@@ -12,14 +12,14 @@ Serviço financeiro que aplica nas carteiras dos jogadores as transações de ap
 
 ## Subir tudo
 
-Requisito: Docker com Docker Compose.
+Requisito: Docker com Docker Compose (e Bun, para os atalhos `bun run`).
 
 ```bash
-docker compose up -d --build --wait
-# ou: bun run docker:up
+bun run start      # sobe tudo em segundo plano e espera ficar saudável
+bun run destroy    # para tudo e apaga containers, banco (volume), filas e a imagem da app
 ```
 
-Isso sobe PostgreSQL, LocalStack (já com as filas criadas) e a aplicação, que aplica as migrations no boot. Nenhum passo manual é necessário.
+`bun run start` é `docker compose up -d --build --wait`: sobe PostgreSQL, LocalStack (já com as filas criadas) e a aplicação, que aplica as migrations no boot. Nenhum passo manual é necessário. Depois de um `destroy`, o próximo `start` recomeça do zero (banco vazio, filas novas).
 
 | O quê | Onde |
 |---|---|
@@ -31,7 +31,7 @@ Isso sobe PostgreSQL, LocalStack (já com as filas criadas) e a aplicação, que
 | PostgreSQL | `localhost:5433` (usuário/senha/banco `wagering`) — 5433 para não colidir com um Postgres local |
 | LocalStack (SQS) | `localhost:4566` |
 
-Para parar: `docker compose down` (ou `bun run docker:down`). Para apagar volumes e imagens: `bun run docker:prune`.
+Para só parar sem apagar os dados: `docker compose down`.
 
 ## Usar
 
@@ -72,7 +72,7 @@ Os testes de integração e concorrência usam **PostgreSQL e LocalStack reais**
 
 ```bash
 bun install
-docker compose up -d postgres localstack --wait   # ou o stack inteiro
+bun run start               # ou só a infra: docker compose up -d postgres localstack --wait
 
 bun test                    # unitários (domínio e eventos)
 bun run test:integration    # API, persistência, mensageria, Swagger e health

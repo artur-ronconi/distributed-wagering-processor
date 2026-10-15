@@ -5,8 +5,9 @@
   "description": "Distributed wagering processor: wallets, ledger and wager transactions with idempotency, outbox and SQS",
   "type": "commonjs",
   "scripts": {
+    "start": "docker compose up -d --build --wait",
+    "destroy": "docker compose down --volumes --remove-orphans --rmi local",
     "dev": "bun --watch src/main.ts",
-    "start": "bun src/main.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "bun test test/unit",
     "test:unit": "bun test test/unit",
@@ -14,10 +15,7 @@
     "test:concurrency": "bun test test/concurrency --timeout 300000",
     "test:all": "bun run test:unit && bun run test:integration && bun run test:concurrency",
     "migration:up": "bun src/shared/infrastructure/database/migration.cli.ts up",
-    "migration:down": "bun src/shared/infrastructure/database/migration.cli.ts down",
-    "docker:up": "docker compose up -d --build --wait",
-    "docker:down": "docker compose down",
-    "docker:prune": "docker compose down -v --rmi local"
+    "migration:down": "bun src/shared/infrastructure/database/migration.cli.ts down"
   },
   "dependencies": {
     "@aws-sdk/client-sqs": "3.1144.0",
