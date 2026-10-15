@@ -177,6 +177,8 @@ O consumer registra a inbox (@docs/domain/inbox-message.md), chama o **mesmo** s
 
 `MessageGroupId = walletId` ordena as mensagens da mesma carteira dentro do SQS, mas é só otimização. A correção vem do lock e das constraints do banco.
 
+O caminho completo de uma mensagem, passo a passo e com nove cenários (reentrega, replay, conflito, saldo insuficiente, referência fora de ordem, banco fora do ar, corrida entre instâncias...), está em `docs/fluxo-da-fila-sqs.html`. Abra o arquivo no navegador.
+
 ## Arquivos
 
 ```
