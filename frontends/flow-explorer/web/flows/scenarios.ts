@@ -2,7 +2,7 @@ import { api, sleep } from "../api";
 import { randomId, randomPlayer } from "../state";
 import { followPending } from "./async";
 import { S } from "./catalog";
-import { runCreateWallet } from "./routes";
+import { runCreateWallet, runWalletOperation } from "./routes";
 import { Recorder, type RunContext } from "./sink";
 import { collectHttp, emitHttp, followUp, rememberTransaction, runSubmitHttp, runSubmitSqs, type SubmitInput } from "./submit";
 
@@ -131,6 +131,25 @@ const scenarios: Scenario[] = [
           knownOutboxIds: new Set(rollback.after.outbox.map((row) => row.id as string)),
         });
       }
+    },
+  },
+  {
+    id: "cashier",
+    title: "Caixa: depósito, saque e saque sem saldo",
+    summary: "Depósito e saque (extensão) passam pelo mesmo lock, extrato e outbox das apostas. O saque acima do saldo é rejeitado e gravado; o reenvio é replay.",
+    async run(ctx) {
+      const wallet = await freshWallet(ctx, "100.00");
+      const op = (operation: "deposits" | "withdrawals", amount: string, idempotencyKey = randomId("cashier")) =>
+        runWalletOperation(ctx, { walletId: wallet.walletId, operation, amount, currency: "BRL", idempotencyKey });
+      ctx.trace.section("depósito de 50.00");
+      await op("deposits", "50.00");
+      ctx.trace.section("saque de 30.00");
+      await op("withdrawals", "30.00");
+      const key = randomId("cashier");
+      ctx.trace.section("saque de 500.00 (saldo 120.00)");
+      await op("withdrawals", "500.00", key);
+      ctx.trace.section("o mesmo saque, de novo");
+      await op("withdrawals", "500.00", key);
     },
   },
   {

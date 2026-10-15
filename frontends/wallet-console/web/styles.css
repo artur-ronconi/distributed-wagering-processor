@@ -416,6 +416,25 @@ p code, .explain code, .rule code { padding: 1px 5px; border-radius: 5px; backgr
 .kind-refund { color: var(--info); }
 .kind-rollback { color: var(--k-rollback); }
 .kind-opening { color: var(--gold); }
+.kind-deposit { color: var(--ok); border-style: dashed; }
+.kind-withdrawal { color: var(--k-bet); border-style: dashed; }
+
+.cashier {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.cashier-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-right: 4px;
+}
 
 .amount { font-family: var(--mono); font-weight: 600; white-space: nowrap; }
 .amount.credit { color: var(--credit); }

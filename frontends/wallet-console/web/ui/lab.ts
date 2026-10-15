@@ -1,4 +1,4 @@
-import { buildInput, GAME, newRoundId, rollback, send, type Outcome } from "../actions";
+import { buildInput, GAME, moveFunds, newRoundId, rollback, send, type Outcome } from "../actions";
 import type { Kind } from "../api";
 import { fromCents, toCents } from "../money";
 import { KIND_LABEL } from "../rules";
@@ -81,6 +81,18 @@ class LabTab {
         rule: "Saldo nunca negativo",
         expect: "422 INSUFFICIENT_FUNDS. A tentativa fica registrada como rejeitada, o saldo não muda.",
         run: async () => [await this.placeBet(fromCents(toCents(this.current().balance) + 100n))],
+      },
+      {
+        title: "Sacar mais do que o saldo",
+        rule: "Caixa",
+        expect: "422 INSUFFICIENT_FUNDS no saque, gravado como rejeitado. Reenviar o mesmo saque devolve o mesmo 422 como replay.",
+        run: async () => {
+          const wallet = this.current();
+          const tooMuch = fromCents(toCents(wallet.balance) + 100n);
+          const first = await moveFunds(wallet, "WITHDRAWAL", tooMuch);
+          const again = first.tx ? await send(first.tx.payload, "Mesmo saque, de novo") : first;
+          return [first, again];
+        },
       },
       {
         title: "Valor com 3 casas decimais",

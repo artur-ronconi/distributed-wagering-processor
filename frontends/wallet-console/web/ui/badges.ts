@@ -36,7 +36,7 @@ const movement = (tx: ConsoleTransaction) => {
   if (tx.status !== "PROCESSED" || tx.kind === "LOSS") return h("span", { class: "amount neutral" }, display(tx.amount));
   // A ROLLBACK does the opposite of what it undoes: undoing a BET credits, undoing a WIN or REFUND debits.
   const undone = tx.kind === "ROLLBACK" ? store.transaction(tx.referenceExternalTransactionId ?? "") : null;
-  const credit = tx.kind === "WIN" || tx.kind === "REFUND" || undone?.kind === "BET";
+  const credit = tx.kind === "WIN" || tx.kind === "REFUND" || tx.kind === "DEPOSIT" || undone?.kind === "BET";
   return h("span", { class: `amount ${credit ? "credit" : "debit"}` }, `${credit ? "+" : "−"} ${display(tx.amount)}`);
 };
 

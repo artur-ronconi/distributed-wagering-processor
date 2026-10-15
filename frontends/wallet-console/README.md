@@ -1,6 +1,6 @@
 # Wallet Console
 
-Console para **usar** o sistema como um operador de cassino e ver as regras de negócio acontecendo: abrir carteiras, apostar, ganhar, perder, reembolsar, estornar, reenviar pedidos e conferir o saldo contra o extrato.
+Console para **usar** o sistema como um operador de cassino e ver as regras de negócio acontecendo: abrir carteiras, depositar, sacar, apostar, ganhar, perder, reembolsar, estornar, reenviar pedidos e conferir o saldo contra o extrato.
 
 ## Rodar
 
@@ -16,6 +16,7 @@ Typecheck: `node_modules/.bin/tsc -p frontends/wallet-console/tsconfig.json`.
 | Área | O que faz |
 |---|---|
 | Minhas carteiras | Cria quantas carteiras quiser. Cada uma ganha um `playerId` próprio (a regra é uma carteira por jogador + moeda) |
+| Caixa (cabeçalho da carteira) | **Depositar** e **Sacar** pelas rotas `POST /wallets/:walletId/deposits` e `/withdrawals`. Saque acima do saldo volta `422 INSUFFICIENT_FUNDS` e fica registrado |
 | Jogar | **Mesa livre**: aposta e você decide o resultado (ganhou, perdeu, reembolsar, estornar). **Cara ou coroa**: a moeda decide (WIN 2× ou LOSS) |
 | Transações | Tudo o que foi enviado, inclusive rejeitadas e derrotas. **Reenviar** repete o pedido com a mesma `Idempotency-Key`; **Estornar** manda um ROLLBACK |
 | Extrato | O ledger da carteira direto do backend, paginado por cursor |

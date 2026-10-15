@@ -223,7 +223,7 @@ const STATUS_FOR: StepDef = {
   title: "statusFor(resultado)",
   detail:
     "O resultado de negócio vira status HTTP: REJECTED → `422` (com o resultado no corpo), PENDING_REFERENCE → `202`, replay → `200`, novo → `201`.",
-  code: { file: F.submitCtrl, anchor: "const statusFor = ", span: 5 },
+  code: { file: F.resultStatus, anchor: "const statusFor = ", span: 5 },
 };
 
 const emitHttp = (sink: Sink, ev: SubmitEvidence & { exchange: HttpExchange }) => {
@@ -451,6 +451,7 @@ const runSubmitSqs = async (ctx: RunContext, input: SubmitInput, options: Messag
 };
 
 export {
+  STATUS_FOR,
   collectHttp,
   emitHttp,
   followUp,

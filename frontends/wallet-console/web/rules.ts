@@ -6,6 +6,8 @@ const KIND_LABEL: Record<string, string> = {
   LOSS: "Derrota",
   REFUND: "Reembolso",
   ROLLBACK: "Estorno",
+  DEPOSIT: "Depósito",
+  WITHDRAWAL: "Saque",
 };
 
 const KIND_HELP: Record<string, string> = {
@@ -14,6 +16,8 @@ const KIND_HELP: Record<string, string> = {
   LOSS: "Registra que a rodada foi perdida. Não mexe no saldo (o valor já saiu na aposta).",
   REFUND: "Devolve uma aposta inteira (ex.: rodada cancelada). Mesmo valor, uma vez só.",
   ROLLBACK: "Desfaz uma aposta, vitória ou reembolso: faz o movimento contrário. Mesmo valor, uma vez só.",
+  DEPOSIT: "Operação de caixa: coloca dinheiro na carteira, fora de uma rodada. Só o próprio serviço cria (provedor internal).",
+  WITHDRAWAL: "Operação de caixa: tira dinheiro da carteira. Recusada se o saldo não cobre, como uma aposta.",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -26,7 +30,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const FAILURE: Record<string, string> = {
-  INSUFFICIENT_FUNDS: "O saldo não cobre a aposta. A tentativa foi registrada como rejeitada e o saldo não mudou: nada fica negativo.",
+  INSUFFICIENT_FUNDS: "O saldo não cobre a aposta ou o saque. A tentativa foi registrada como rejeitada e o saldo não mudou: nada fica negativo.",
   REVERSAL_WOULD_OVERDRAW:
     "Desfazer essa operação deixaria o saldo negativo (o dinheiro já foi gasto). É um código diferente de saldo insuficiente porque operacionalmente é outra situação.",
   REFERENCE_ALREADY_REVERSED: "Essa transação já foi desfeita antes. Uma aposta só pode ser revertida uma vez (reembolso e estorno somados).",
