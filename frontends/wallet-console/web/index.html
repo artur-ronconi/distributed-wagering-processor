@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wallet Console</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%2310b981'/%3E%3Ctext x='8' y='12' font-size='10' text-anchor='middle' fill='white'%3E%24%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">$</span>
+        <div>
+          <strong>Wallet Console</strong>
+          <small>opere carteiras como um cassino e veja cada regra de negócio em ação</small>
+        </div>
+      </div>
+      <div class="top-right">
+        <a class="pill link-pill" href="http://localhost:4000" target="_blank" rel="noopener" title="ver o caminho de cada requisição dentro do backend">Flow Explorer ↗</a>
+        <span class="pill" id="api-status">…</span>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="sidebar" id="sidebar" aria-label="Minhas carteiras"></aside>
+      <section class="main" id="main"></section>
+      <aside class="activity" id="activity" aria-label="Atividade"></aside>
+    </main>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
