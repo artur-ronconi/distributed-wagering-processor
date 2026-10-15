@@ -29,8 +29,9 @@ interface DecisionInput {
 
 type Decision = "processed" | "rejected" | "reference-missing";
 
+/** Direction when there is no ledger entry to read it from (rejected transactions). */
 const inferDirection = (kind: string, reference: Row | null) => {
-  if (kind === "BET") return "DEBIT";
+  if (kind === "BET" || kind === "WITHDRAWAL") return "DEBIT";
   if (kind === "ROLLBACK") return reference?.kind === "BET" ? "CREDIT" : "DEBIT";
   return "CREDIT";
 };
@@ -150,6 +151,8 @@ interface PersistInput {
   outbox: Row[];
   inbox?: Row | null;
   after: Snapshot;
+  /** Use case that builds the events and inserts the transaction (default: the wager submit use case). */
+  useCaseFile?: string;
 }
 
 /** Writes of the decided transaction, in the order the use case runs them, then COMMIT. */
@@ -160,7 +163,9 @@ const emitPersist = (sink: Sink, p: PersistInput) => {
   const buildEvents =
     p.origin === "worker"
       ? { ...S.buildEvents, from: "domain" as const, code: { file: F.resolveUc, anchor: "switch (decision.outcome)", span: 22 } }
-      : S.buildEvents;
+      : p.useCaseFile
+        ? { ...S.buildEvents, code: { file: p.useCaseFile, anchor: "switch (decision.outcome)", span: 14 } }
+        : S.buildEvents;
   add(buildEvents, {
     note: byEmitOrder(p.outbox).map((row) => row.eventType).join(" + ") || "nenhum evento",
     evidence: p.outbox.length > 0 ? "observado" : "inferido",
@@ -168,7 +173,12 @@ const emitPersist = (sink: Sink, p: PersistInput) => {
 
   const code = p.tx.failureCode ? ` · ${p.tx.failureCode}` : "";
   if (p.origin === "worker") add(S.workerSave, { note: `status ${p.tx.status}${code}`, evidence: "observado", data: p.tx });
-  else add(S.insertTransaction, { note: `status ${p.tx.status}${code}`, evidence: "observado", data: p.tx });
+  else {
+    const insert = p.useCaseFile
+      ? { ...S.insertTransaction, code: { file: p.useCaseFile, anchor: "await this.transactions.insert(transaction)" } }
+      : S.insertTransaction;
+    add(insert, { note: `status ${p.tx.status}${code}`, evidence: "observado", data: p.tx });
+  }
 
   const entry = p.ledger[0];
   if (entry) {

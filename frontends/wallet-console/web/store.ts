@@ -34,6 +34,8 @@ interface ConsoleTransaction {
   updatedAt: string;
   /** Exactly what was sent, so "send again" repeats the same request. */
   payload: SubmitInput;
+  /** Which route it went through: the wager route, or the wallet cashier (deposit/withdrawal). */
+  channel?: "wager" | "cashier";
 }
 
 type RoundState = "open" | "won" | "lost" | "refunded" | "rolledback" | "rejected" | "pending";

@@ -5,6 +5,7 @@ import { ConcurrencyConflictError } from "../../../src/shared/errors/concurrency
 import { DuplicateKeyError } from "../../../src/shared/errors/duplicate-key.error";
 import { TransientInfrastructureError } from "../../../src/shared/errors/transient-infrastructure.error";
 import { WalletAggregate } from "../../../src/modules/wallet/domain/aggregate/aggregate-root/wallet.aggregate-root";
+import { WagerTransactionAggregate } from "../../../src/modules/wager-transaction/domain/aggregate/aggregate-root/wager-transaction.aggregate-root";
 import { WagerTransactionKind, WagerTransactionStatus } from "../../../src/modules/wager-transaction/domain/aggregate/aggregate-root/wager-transaction.enums";
 import { FailureCode } from "../../../src/shared/domain/failure-code";
 import { InboxMessageAggregate } from "../../../src/modules/messaging/domain/aggregate/aggregate-root/inbox-message/inbox-message.aggregate-root";
@@ -30,14 +31,40 @@ const persistOpenedWallet = async (initialBalance = "100.00", playerId?: string)
   return { wallet, opening };
 };
 
+const depositOf = (wallet: WalletAggregate, amount: string) =>
+  WagerTransactionAggregate.createWalletOperation({
+    kind: WagerTransactionKind.Deposit,
+    walletId: wallet.id,
+    playerId: wallet.playerId,
+    money: brl(amount),
+    clientIdempotencyKey: unique("key"),
+    payloadHash: "0".repeat(64),
+  }).result as WagerTransactionAggregate;
+
 describe("persistence (real PostgreSQL)", () => {
   describe("migrations", () => {
-    it("can be reverted and applied again", async () => {
+    it("can all be reverted and applied again", async () => {
       const migrator = db.orm.getMigrator();
-      await migrator.down();
+      await migrator.down({ to: 0 });
       expect(await db.sql(`select to_regclass('public.wallets') as t`)).toEqual([{ t: null }]);
       await migrator.up();
       expect((await db.sql<{ t: string }>(`select to_regclass('public.wallets')::text as t`))[0]?.t).toBe("wallets");
+    });
+
+    it("reverts the wallet operations migration even with deposits stored, keeping their history", async () => {
+      const { wallet } = await persistOpenedWallet("100.00");
+      const deposit = depositOf(wallet, "10.00");
+      deposit.markProcessed(undefined, now(), brl("110.00"));
+      await db.uow.transactional(() => db.transactions.insert(deposit));
+      const migrator = db.orm.getMigrator();
+
+      const reverted = await migrator.down();
+
+      expect(reverted.map((m) => m.name)).toEqual(["Migration20261015120000WalletOperations"]);
+      expect(await db.sql(`select "kind" from "wager_transactions" where "kind" = 'DEPOSIT'`)).toHaveLength(1);
+      await expect(db.uow.transactional(() => db.transactions.insert(depositOf(wallet, "5.00")))).rejects.toThrow();
+      await migrator.up();
+      await db.uow.transactional(() => db.transactions.insert(depositOf(wallet, "5.00")));
     });
   });
 
@@ -122,6 +149,19 @@ describe("persistence (real PostgreSQL)", () => {
   });
 
   describe("database constraints", () => {
+    it("DEPOSIT, WITHDRAWAL and OPENING only exist for the internal provider", async () => {
+      const { wallet } = await persistOpenedWallet("100.00");
+      const deposit = depositOf(wallet, "10.00");
+      await db.uow.transactional(() => db.transactions.insert(deposit));
+
+      await expect(
+        db.sql(`update "wager_transactions" set "provider_id" = 'provider-a' where "id" = ?`, [deposit.id.value]),
+      ).rejects.toThrow(/wager_tx_internal_kinds_internal_provider/);
+      await expect(
+        db.sql(`update "wager_transactions" set "provider_id" = 'provider-a' where "kind" = 'OPENING'`),
+      ).rejects.toThrow(/wager_tx_internal_kinds_internal_provider/);
+    });
+
     it("one wallet per player and currency", async () => {
       const playerId = unique("player");
       await persistOpenedWallet("10.00", playerId);

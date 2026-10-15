@@ -1,4 +1,13 @@
-import { runCreateWallet, runGetLedger, runGetProviderTransaction, runGetTransaction, runGetWallet, runHealth, runReconcile } from "../flows/routes";
+import {
+  runCreateWallet,
+  runGetLedger,
+  runGetProviderTransaction,
+  runGetTransaction,
+  runGetWallet,
+  runHealth,
+  runReconcile,
+  runWalletOperation,
+} from "../flows/routes";
 import type { RunContext } from "../flows/sink";
 import { runSubmitHttp, runSubmitSqs, type SubmitInput } from "../flows/submit";
 import { randomId, randomPlayer, session } from "../state";
@@ -170,6 +179,45 @@ const operations: Operation[] = [
     preview: (v) => ({ method: "POST", target: `/wallets/${v.walletId}/reconciliation` }),
     run: (ctx, v) => runReconcile(ctx, v.walletId ?? ""),
   },
+  ...(["deposits", "withdrawals"] as const).map(
+    (operation): Operation => ({
+      id: operation,
+      group: "wallets",
+      method: "POST",
+      path: `/wallets/:walletId/${operation}`,
+      title: operation === "deposits" ? "Depositar (extensão)" : "Sacar (extensão)",
+      description:
+        operation === "deposits"
+          ? "Operação de caixa: coloca dinheiro na carteira. Vira uma transação interna `DEPOSIT`, decidida pelo mesmo processor das apostas."
+          : "Operação de caixa: tira dinheiro da carteira. Saque acima do saldo vira `REJECTED` com `INSUFFICIENT_FUNDS` (422), gravado.",
+      fields: [
+        walletField,
+        { name: "amount", label: "money.amount", initial: () => "50.00" },
+        { name: "currency", label: "money.currency", initial: () => currentWallet()?.currency ?? "BRL" },
+        { name: "idempotencyKey", label: "Idempotency-Key (header)", initial: () => randomId("cashier"), regenerate: true, help: "Com escopo na carteira. Repita para ver o replay." },
+      ],
+      derive: (values, changed) => {
+        if (changed === "walletId" || changed === "*") {
+          const wallet = session.wallet(values.walletId ?? "");
+          if (wallet) values.currency = wallet.currency;
+        }
+      },
+      preview: (v) => ({
+        method: "POST",
+        target: `/wallets/${v.walletId}/${operation}`,
+        headers: { "Idempotency-Key": v.idempotencyKey ?? "" },
+        body: { money: { amount: v.amount, currency: v.currency } },
+      }),
+      run: (ctx, v) =>
+        runWalletOperation(ctx, {
+          walletId: v.walletId ?? "",
+          operation,
+          amount: v.amount ?? "",
+          currency: v.currency ?? "",
+          idempotencyKey: v.idempotencyKey ?? "",
+        }),
+    }),
+  ),
   {
     id: "submit",
     group: "transactions",

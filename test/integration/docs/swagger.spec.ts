@@ -12,6 +12,8 @@ const EXPECTED: Record<string, Record<string, number[]>> = {
   "/wallets/{walletId}": { get: [200, 400, 404, 503, 500] },
   "/wallets/{walletId}/ledger": { get: [200, 400, 404, 503, 500] },
   "/wallets/{walletId}/reconciliation": { post: [200, 400, 404, 503, 500] },
+  "/wallets/{walletId}/deposits": { post: [201, 200, 400, 404, 409, 422, 503, 500] },
+  "/wallets/{walletId}/withdrawals": { post: [201, 200, 400, 404, 409, 422, 503, 500] },
   "/wagering/transactions": { post: [201, 200, 202, 400, 404, 409, 422, 503, 500] },
   "/wagering/transactions/{transactionId}": { get: [200, 400, 404, 503, 500] },
   "/providers/{providerId}/wagering/transactions/{externalTransactionId}": { get: [200, 400, 404, 503, 500] },
@@ -70,6 +72,23 @@ describe("Swagger / OpenAPI", () => {
     expect(operation.responses["503"].headers["Retry-After"]).toBeDefined();
   });
 
+  it.each(["/wallets/{walletId}/deposits", "/wallets/{walletId}/withdrawals"])(
+    "%s requires Idempotency-Key and documents the body and the rejection",
+    (path) => {
+      const operation = document.paths[path].post;
+      const header = operation.parameters.find((p: { name: string }) => p.name === "Idempotency-Key");
+      expect(header).toMatchObject({ in: "header", required: true });
+      expect(operation.tags).toEqual(["Wallets"]);
+      expect(operation.requestBody.content["application/json"].schema.$ref).toContain("WalletOperationRequestDto");
+      expect(Object.keys(operation.responses["422"].content["application/json"].examples)).toContain("currencyMismatch");
+    },
+  );
+
+  it("withdrawal documents INSUFFICIENT_FUNDS", () => {
+    const examples = document.paths["/wallets/{walletId}/withdrawals"].post.responses["422"].content["application/json"].examples;
+    expect(examples.insufficientFunds.value.failureCode).toBe("INSUFFICIENT_FUNDS");
+  });
+
   it("exposes reusable schemas, named enums and the messaging contracts", () => {
     const schemas = Object.keys(document.components.schemas);
     for (const name of [
@@ -87,10 +106,12 @@ describe("Swagger / OpenAPI", () => {
       "WagerTransactionRequestedMessageDto",
       "IntegrationEventEnvelopeDto",
       "WalletBalanceChangedDataDto",
+      "WalletOperationRequestDto",
     ]) {
       expect(schemas).toContain(name);
     }
     expect(document.components.schemas.FailureCode.enum).toContain("INSUFFICIENT_FUNDS");
+    expect(document.components.schemas.WagerTransactionKind.enum).toEqual(expect.arrayContaining(["DEPOSIT", "WITHDRAWAL"]));
     expect(document.components.schemas.MoneyDto.properties.amount.pattern).toBeTruthy();
   });
 

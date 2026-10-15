@@ -37,7 +37,7 @@ X-Correlation-Id: c0a8017e-3f2b-4c1d-9e8f-1a2b3c4d5e6f   (opcional)
 | header `Idempotency-Key` | **obrigatório**, string não vazia, até 256 caracteres. Padrão recomendado: `"{providerId}:{externalTransactionId}"` |
 | `providerId`, `externalTransactionId`, `playerId`, `roundId`, `gameId` | string não vazia, até 128 caracteres |
 | `walletId` | id de 16 caracteres |
-| `kind` | `BET`, `WIN`, `LOSS`, `REFUND` ou `ROLLBACK`. `OPENING` é recusado |
+| `kind` | `BET`, `WIN`, `LOSS`, `REFUND` ou `ROLLBACK`. Os kinds internos (`OPENING`, `DEPOSIT`, `WITHDRAWAL`) são recusados |
 | `money` | formato de @docs/domain/money.md. Positivo, exceto `LOSS`, que aceita `0.00` |
 | `referenceExternalTransactionId` | obrigatório em `REFUND` e `ROLLBACK` |
 
@@ -133,7 +133,7 @@ O corpo de sucesso, de rejeição e de replay é **o mesmo formato**: o resultad
 
 | Status | `code` | Quando |
 |---|---|---|
-| 400 | `INVALID_PAYLOAD` | sem `Idempotency-Key`, campo faltando, `kind` inválido ou `OPENING`, dinheiro mal formatado, `REFUND`/`ROLLBACK` sem referência |
+| 400 | `INVALID_PAYLOAD` | sem `Idempotency-Key`, campo faltando, `kind` inválido ou interno (`OPENING`, `DEPOSIT`, `WITHDRAWAL`), dinheiro mal formatado, `REFUND`/`ROLLBACK` sem referência |
 | 400 | `INVALID_AMOUNT` | valor zero em kind que mexe no saldo |
 | 404 | `WALLET_NOT_FOUND` | `walletId` não existe |
 | 409 | `IDEMPOTENCY_CONFLICT` | mesma `Idempotency-Key` com `payloadHash` diferente |
@@ -177,10 +177,13 @@ O consumer registra a inbox (@docs/domain/inbox-message.md), chama o **mesmo** s
 
 `MessageGroupId = walletId` ordena as mensagens da mesma carteira dentro do SQS, mas é só otimização. A correção vem do lock e das constraints do banco.
 
+O caminho completo de uma mensagem, passo a passo e com nove cenários (reentrega, replay, conflito, saldo insuficiente, referência fora de ordem, banco fora do ar, corrida entre instâncias...), está em `docs/fluxo-da-fila-sqs.html`. Abra o arquivo no navegador.
+
 ## Arquivos
 
 ```
 src/modules/wager-transaction/presentation/controllers/submit-wager-transaction.controller.ts
+src/modules/wager-transaction/presentation/controllers/transaction-result-status.ts   (statusFor: resultado → 201/200/202/422)
 src/modules/wager-transaction/presentation/controllers/dtos/wager-transaction.dto.ts   (SubmitWagerTransactionRequestDto, WagerTransactionResultDto)
 src/modules/wager-transaction/presentation/consumers/wager-transactions.consumer.ts     ← SQS
 src/modules/wager-transaction/domain/usecases/submit-wager-transaction/submit-wager-transaction.usecase.ts
@@ -229,6 +232,7 @@ async execute(
   return result;
 }
 
+// transaction-result-status.ts — shared with POST /wallets/:walletId/deposits and /withdrawals
 const statusFor = ({ status, idempotentReplay }: ISubmitWagerTransactionServiceOutput): number => {
   if (status === WagerTransactionStatus.Rejected) return HttpStatus.UNPROCESSABLE_ENTITY;
   if (status === WagerTransactionStatus.PendingReference) return HttpStatus.ACCEPTED;

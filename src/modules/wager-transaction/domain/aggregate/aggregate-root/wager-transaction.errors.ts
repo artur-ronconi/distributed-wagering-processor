@@ -8,9 +8,15 @@ const INVALID_WAGER_TRANSACTION: IDomainError = {
   statusCode: HttpStatus.BAD_REQUEST,
 };
 
-const OPENING_NOT_ALLOWED: IDomainError = {
+const INTERNAL_KIND_NOT_ALLOWED: IDomainError = {
   code: FailureCode.InvalidPayload,
-  message: "OPENING is internal and cannot be submitted.",
+  message: "OPENING, DEPOSIT and WITHDRAWAL are internal operations and cannot be submitted by a provider.",
+  statusCode: HttpStatus.BAD_REQUEST,
+};
+
+const INVALID_WALLET_OPERATION: IDomainError = {
+  code: FailureCode.InvalidAmount,
+  message: "Deposits and withdrawals must have a positive amount.",
   statusCode: HttpStatus.BAD_REQUEST,
 };
 
@@ -90,7 +96,8 @@ class InvalidTransactionStateError extends Error {
 
 export {
   INVALID_WAGER_TRANSACTION,
-  OPENING_NOT_ALLOWED,
+  INTERNAL_KIND_NOT_ALLOWED,
+  INVALID_WALLET_OPERATION,
   REFERENCE_REQUIRED,
   INVALID_WAGER_AMOUNT,
   IDEMPOTENCY_CONFLICT,

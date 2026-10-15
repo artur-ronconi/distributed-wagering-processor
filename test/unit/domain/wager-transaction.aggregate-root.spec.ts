@@ -54,9 +54,11 @@ describe("WagerTransactionAggregate", () => {
       expect(tx.referenceAttempts).toBe(0);
     });
 
-    it("refuses OPENING", () => {
-      const output = WagerTransactionAggregate.create(props({ kind: Kind.Opening }));
+    it.each([Kind.Opening, Kind.Deposit, Kind.Withdrawal])("refuses the internal kind %s from a provider", (kind) => {
+      const output = WagerTransactionAggregate.create(props({ kind }));
+      expect(output.isFailure).toBe(true);
       expect(codeOf(output.result)).toBe(FailureCode.InvalidPayload);
+      expect((output.result as IDomainError).message).toContain("internal");
     });
 
     it("refuses an unknown kind", () => {
@@ -270,6 +272,62 @@ describe("WagerTransactionAggregate", () => {
     it("rejects a partial reversal", () => {
       const refund = reversal(Kind.Refund, { money: brl("10.00") });
       expect(codeOf(refund.validateReference(processed()).result)).toBe(FailureCode.ReferenceAmountMismatch);
+    });
+  });
+
+  describe("createWalletOperation (deposit and withdrawal)", () => {
+    const operation = (kind: Kind.Deposit | Kind.Withdrawal, amount = "50.00", key = "cashier-1") =>
+      WagerTransactionAggregate.createWalletOperation({
+        kind,
+        walletId,
+        playerId: "player-1",
+        money: brl(amount),
+        clientIdempotencyKey: key,
+        payloadHash: "hash",
+      });
+
+    it("is born PENDING with internal provider fields and the client key scoped to the wallet", () => {
+      const tx = operation(Kind.Deposit).result as WagerTransactionAggregate;
+
+      expect(tx.kind).toBe(Kind.Deposit);
+      expect(tx.status).toBe(Status.Pending);
+      expect(tx.providerId).toBe("internal");
+      expect(tx.idempotencyKey).toBe(`internal:${walletId.value}:cashier-1`);
+      expect(tx.idempotencyKey).toBe(WagerTransactionAggregate.walletOperationKey(walletId, "cashier-1"));
+      expect(tx.externalTransactionId).toBe(`deposit:${walletId.value}:cashier-1`);
+      expect(tx.referenceExternalTransactionId).toBeUndefined();
+      expect(tx.requiresReference()).toBe(false);
+      expect(tx.affectsBalance()).toBe(true);
+    });
+
+    it("deposit credits and withdrawal debits", () => {
+      expect((operation(Kind.Deposit).result as WagerTransactionAggregate).ledgerDirectionFor()).toBe(LedgerDirection.Credit);
+      expect((operation(Kind.Withdrawal).result as WagerTransactionAggregate).ledgerDirectionFor()).toBe(LedgerDirection.Debit);
+    });
+
+    it.each([Kind.Deposit, Kind.Withdrawal] as const)("%s refuses a zero amount", (kind) => {
+      const output = operation(kind, "0.00");
+      expect(codeOf(output.result)).toBe(FailureCode.InvalidAmount);
+    });
+
+    it("refuses any other kind", () => {
+      const output = WagerTransactionAggregate.createWalletOperation({
+        kind: Kind.Bet as unknown as Kind.Deposit,
+        walletId,
+        playerId: "player-1",
+        money: brl("50.00"),
+        clientIdempotencyKey: "k",
+        payloadHash: "hash",
+      });
+      expect(codeOf(output.result)).toBe(FailureCode.InvalidPayload);
+    });
+
+    it("follows the normal transitions (decided once, then terminal)", () => {
+      const tx = operation(Kind.Withdrawal).result as WagerTransactionAggregate;
+      tx.reject(FailureCode.InsufficientFunds, now(), brl("10.00"));
+
+      expect(tx.status).toBe(Status.Rejected);
+      expect(() => tx.markProcessed(undefined, now(), brl("10.00"))).toThrow(InvalidTransactionStateError);
     });
   });
 

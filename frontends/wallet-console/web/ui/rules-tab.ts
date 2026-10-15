@@ -42,6 +42,11 @@ const RULES: Array<{ icon: string; title: string; text: string }> = [
     text: "Operações na **mesma** carteira entram em fila (lock da linha no banco). Carteiras diferentes andam em paralelo. Duas apostas simultâneas nunca gastam o mesmo dinheiro.",
   },
   {
+    icon: "🏦",
+    title: "Caixa: depósito e saque",
+    text: "Operações fora de uma rodada, pelas rotas `/deposits` e `/withdrawals` da carteira. Têm as **mesmas garantias** das apostas (key, lock, extrato, eventos). Um saque maior que o saldo é **rejeitado e registrado**. Provedores não conseguem criar essas operações.",
+  },
+  {
     icon: "📒",
     title: "Extrato imutável",
     text: "Todo movimento gera um lançamento com saldo antes e depois. O extrato só cresce: o próprio banco recusa alterar ou apagar. O saldo pode sempre ser conferido somando o extrato.",

@@ -2,6 +2,8 @@ import { api, type HttpExchange } from "../api";
 import { session } from "../state";
 import { followOutbox } from "./async";
 import { F, S } from "./catalog";
+import { emitDecision, emitPersist } from "./decision";
+import { STATUS_FOR } from "./submit";
 import { byEmitOrder, invariantNote, money, walletLine } from "./format";
 import type { Extra, RunContext } from "./sink";
 import type { StepDef } from "./types";
@@ -204,6 +206,174 @@ const runCreateWallet = async (ctx: RunContext, input: CreateWalletInput, option
     });
   }
   await followOutbox(ctx, after.outbox, options.track);
+  return { exchange, after };
+};
+
+// ------------------------------------------------------------------ POST /wallets/:walletId/deposits | /withdrawals
+
+interface WalletOperationInput {
+  walletId: string;
+  operation: "deposits" | "withdrawals";
+  amount: string;
+  currency: string;
+  idempotencyKey: string;
+}
+
+/**
+ * Deposit or withdrawal (extension, not in the challenge): an internal DEPOSIT/WITHDRAWAL transaction
+ * decided by the same processor as the wagers. The client's key is stored scoped to the wallet.
+ */
+const runWalletOperation = async (ctx: RunContext, input: WalletOperationInput, options: { title?: string; track?: string } = {}) => {
+  const { trace } = ctx;
+  const add = (def: StepDef, extra: Extra = {}) => trace.add(def, { track: options.track, ...extra });
+  const kind = input.operation === "deposits" ? "DEPOSIT" : "WITHDRAWAL";
+  const path = `/wallets/${input.walletId}/${input.operation}`;
+  const storedKey = `internal:${input.walletId}:${input.idempotencyKey}`;
+  const query = { walletId: input.walletId, idempotencyKey: storedKey };
+
+  const before = await api.inspect(query);
+  const exchange = await api.http("POST", `/wallets/${encodeURIComponent(input.walletId)}/${input.operation}`, {
+    headers: input.idempotencyKey ? { "Idempotency-Key": input.idempotencyKey } : {},
+    body: { money: { amount: input.amount, currency: input.currency } },
+  });
+  const after = await api.inspect(query);
+  ctx.record({ type: "http", title: options.title ?? `POST /wallets/:walletId/${input.operation}`, exchange, track: options.track });
+
+  const controller = input.operation === "deposits" ? F.depositCtrl : F.withdrawCtrl;
+  const finish = () => {
+    if ([200, 201, 422].includes(exchange.status)) {
+      add({ ...STATUS_FOR, detail: `${STATUS_FOR.detail} O mesmo \`statusFor\` da rota de apostas.` }, {
+        note: `${exchange.body?.status}${exchange.body?.idempotentReplay ? " (replay)" : ""} → ${exchange.status}`,
+      });
+      add(S.httpResponse(exchange.status, controller, "response.status(statusFor(result))"), {
+        note: `${exchange.body?.status}${exchange.body?.failureCode ? ` · ${exchange.body.failureCode}` : ""} · saldo ${exchange.body?.balance?.amount ?? "—"}`,
+        evidence: "observado",
+        data: exchange.body,
+        outcome: exchange.status === 422 ? "fail" : "ok",
+      });
+    } else {
+      respond(ctx, exchange, controller, "if (output.isFailure) throw httpErrorFrom(output)");
+    }
+    return { exchange, after };
+  };
+
+  add(S.httpRequest("POST", path, controller, `@Post(":walletId/${input.operation}")`), {
+    note: `Idempotency-Key: ${input.idempotencyKey || "(vazio)"} · ${kind} ${money(input.amount, input.currency)}`,
+    evidence: "observado",
+    data: exchange.request,
+  });
+  add(S.correlationId, { note: exchange.headers["x-correlation-id"], evidence: "observado" });
+  add(S.authGuard, {});
+  const dtoError = isDtoError(exchange);
+  add(S.validationPipe, {
+    branch: { question: "formato do corpo válido?", answer: dtoError ? "não" : "sim" },
+    outcome: dtoError ? "fail" : "ok",
+  });
+  if (dtoError) return finish();
+
+  add(
+    {
+      lane: "usecase",
+      from: "entry",
+      kind: "call",
+      title: "MoveWalletFundsUseCase",
+      detail:
+        "Depósito e saque são uma extensão (não estão no enunciado). O use case grava uma transação **interna** (`DEPOSIT` ou `WITHDRAWAL`, provedor `internal`) e a decide com o mesmo processor das apostas: mesma idempotência, mesmo lock, mesmo extrato, mesma outbox.",
+      code: { file: F.moveFundsUc, anchor: "async execute(input", span: 8 },
+    },
+    {},
+  );
+
+  const invalid = exchange.status === 400;
+  add(
+    {
+      lane: "domain",
+      from: "usecase",
+      kind: "decision",
+      title: "prepare(): key, id e Money > 0",
+      detail: "Validação pura, sem abrir transação: `Idempotency-Key` presente, id de 16 caracteres, dinheiro com 2 casas e **maior que zero**. O `payloadHash` cobre carteira, operação e valor.",
+      code: { file: F.moveFundsUc, anchor: "private prepare(input", span: 22 },
+    },
+    { branch: { question: "entrada válida?", answer: invalid ? `não → ${exchange.body?.code}` : "sim" }, outcome: invalid ? "fail" : "ok" },
+  );
+  if (invalid) return finish();
+
+  add(S.begin(), { from: "usecase", tx: "begin" });
+  const existing = before.transaction;
+  add(
+    {
+      ...S.idempotencyLookup,
+      detail:
+        "A key do cliente é guardada **com escopo na carteira**: `internal:{walletId}:{key}`. Não colide com as keys dos provedores nem entre carteiras. Já existindo, é reenvio e nem precisa do lock.",
+      code: { file: F.moveFundsUc, anchor: "const existing = await this.transactions.findByIdempotencyKey(key)", span: 2 },
+    },
+    {
+      branch: { question: "a key já existe nesta carteira?", answer: existing ? `sim (${existing.kind} ${existing.status})` : "não" },
+      note: storedKey,
+      evidence: "observado",
+      data: existing ?? undefined,
+    },
+  );
+
+  if (existing) {
+    const replay = exchange.status !== 409;
+    add(
+      { ...S.replayCheck, code: { file: F.moveFundsUc, anchor: "private replay(", span: 4 } },
+      {
+        branch: { question: "mesmo payloadHash (mesma operação e valor)?", answer: replay ? "sim → replay" : "não → conflito" },
+        outcome: replay ? "ok" : "fail",
+      },
+    );
+    add(replay ? S.commit : S.rollback, { tx: replay ? "commit" : "rollback", note: replay ? "nada é movido de novo" : "IDEMPOTENCY_CONFLICT" });
+    return finish();
+  }
+
+  if (exchange.status === 404) {
+    add(S.lockWallet, { branch: { question: "a carteira existe?", answer: "não" }, outcome: "fail", evidence: "observado" });
+    add(S.rollback, { tx: "rollback", note: "WALLET_NOT_FOUND" });
+    return finish();
+  }
+
+  add(S.lockWallet, { lock: "acquire", note: `🔒 ${walletLine(before.wallet)}`, evidence: "observado", data: before.wallet ?? undefined });
+  add(
+    { ...S.recheckIdempotency, code: { file: F.moveFundsUc, anchor: "const committedMeanwhile", span: 2 } },
+    { branch: { question: "alguém gravou enquanto esperávamos o lock?", answer: "não" } },
+  );
+
+  const tx = after.transaction;
+  if (!tx) {
+    add(S.rollback, { tx: "rollback", lock: "release", note: "erro inesperado (veja a resposta)", outcome: "fail" });
+    return finish();
+  }
+  add(
+    {
+      lane: "domain",
+      from: "usecase",
+      kind: "domain",
+      title: `createWalletOperation(${kind})`,
+      detail: `Nasce \`PENDING\`, com provedor \`internal\`, \`externalTransactionId\` = \`${kind.toLowerCase()}:{walletId}:{key}\` e rodada fixa \`wallet-operation\`. Provedores não conseguem criar esse kind: o \`create\` deles recusa e o banco tem uma constraint para isso.`,
+      code: { file: F.txAgg, anchor: "static createWalletOperation(", span: 26 },
+    },
+    { note: `${kind} ${money(tx.amount, tx.currency)} · nasce PENDING`, evidence: "observado", data: tx },
+  );
+
+  emitDecision(trace, { track: options.track, origin: "usecase", tx, reference: null, walletAtLock: before.wallet, ledger: after.ledger });
+  const newOutbox = after.outbox.filter((row) => !before.outbox.some((old) => old.id === row.id));
+  emitPersist(trace, {
+    track: options.track,
+    origin: "usecase",
+    tx,
+    walletAtLock: before.wallet,
+    ledger: after.ledger,
+    outbox: newOutbox,
+    after,
+    useCaseFile: F.moveFundsUc,
+  });
+  finish();
+
+  ctx.record({ type: "snapshot", title: "Banco: antes → depois", before, after, track: options.track });
+  if (after.wallet) session.updateBalance(input.walletId, after.wallet.balanceAmount as string);
+  await followOutbox(ctx, newOutbox, options.track);
   return { exchange, after };
 };
 
@@ -478,6 +648,7 @@ const runHealth = async (ctx: RunContext, which: "live" | "ready") => {
 };
 
 export {
+  runWalletOperation,
   runCreateWallet,
   runGetLedger,
   runGetProviderTransaction,
@@ -486,4 +657,5 @@ export {
   runHealth,
   runReconcile,
   type CreateWalletInput,
+  type WalletOperationInput,
 };

@@ -1,7 +1,7 @@
 import { activity } from "../activity";
 import { api } from "../api";
-import { refreshWallet } from "../actions";
-import { display } from "../money";
+import { moveFunds, refreshWallet } from "../actions";
+import { display, normalize } from "../money";
 import { store, type ConsoleWallet } from "../store";
 import { explanationCard } from "./badges";
 import { busy, h, replace } from "./dom";
@@ -20,6 +20,7 @@ class WalletHeader {
   private readonly balance = h("div", { class: "balance" });
   private readonly version = h("span", { class: "version" });
   private readonly check = h("div", { class: "check-result" });
+  private readonly cashierResult = h("div", { class: "check-result" });
 
   constructor(private readonly wallet: ConsoleWallet) {
     const refresh = h("button", { class: "btn ghost" }, "↻ Atualizar");
@@ -37,11 +38,42 @@ class WalletHeader {
       ),
       h("div", { class: "wallet-actions" }, refresh, reconcile),
       this.check,
+      this.cashier(),
+      this.cashierResult,
     );
     this.refresh();
   }
 
   private checkedVersion: number | null = null;
+
+  /** Deposit and withdrawal: POST /wallets/:walletId/deposits and /withdrawals. */
+  private cashier() {
+    const amount = h("input", { class: "amount-input small", value: "50.00", inputmode: "decimal", title: "valor" });
+    const run = (operation: "DEPOSIT" | "WITHDRAWAL") => {
+      const button = h("button", { class: `btn ${operation === "DEPOSIT" ? "ok" : "fail"}` }, operation === "DEPOSIT" ? "＋ Depositar" : "－ Sacar");
+      button.addEventListener("click", () => {
+        const value = normalize(amount.value);
+        if (!value) {
+          replace(this.cashierResult, explanationCard({ tone: "fail", title: "Valor inválido", text: "Use um valor como 50 ou 50.25 (até 2 casas)." }));
+          return;
+        }
+        void busy(button, async () => {
+          const outcome = await moveFunds(store.wallet(this.wallet.id) ?? this.wallet, operation, value);
+          replace(this.cashierResult, explanationCard(outcome.explanation));
+        });
+      });
+      return button;
+    };
+    return h(
+      "div",
+      { class: "cashier" },
+      h("span", { class: "cashier-label", title: "operações de caixa, fora de uma rodada" }, "Caixa"),
+      amount,
+      run("DEPOSIT"),
+      run("WITHDRAWAL"),
+      h("small", { class: "muted" }, "Saque acima do saldo é recusado (422) e fica registrado."),
+    );
+  }
 
   refresh() {
     const wallet = store.wallet(this.wallet.id);

@@ -1,4 +1,4 @@
-import { Body, Controller, Headers, HttpStatus, Post, Res } from "@nestjs/common";
+import { Body, Controller, Headers, Post, Res } from "@nestjs/common";
 import { ApiBody, ApiHeader, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { Output } from "ddd-tool-kit";
 import type { Response } from "express";
@@ -12,6 +12,7 @@ import { ApiErrorResponse, ApiInfrastructureErrors } from "../../../../shared/pr
 import { ApiCorrelationIdHeader } from "../../../../shared/presentation/http/api-params";
 import { CorrelationId } from "../../../../shared/presentation/http/correlation-id";
 import { httpErrorFrom } from "../../../../shared/presentation/http/http-error";
+import { statusFor } from "./transaction-result-status";
 import { SubmitWagerTransactionRequestDto, WagerTransactionResultDto } from "./dtos/wager-transaction.dto";
 
 const base = {
@@ -30,12 +31,6 @@ const result = (overrides: Partial<WagerTransactionResultView>) => ({
   idempotentReplay: false,
   ...overrides,
 });
-
-const statusFor = ({ status, idempotentReplay }: WagerTransactionResultView): number => {
-  if (status === WagerTransactionStatus.Rejected) return HttpStatus.UNPROCESSABLE_ENTITY;
-  if (status === WagerTransactionStatus.PendingReference) return HttpStatus.ACCEPTED;
-  return idempotentReplay ? HttpStatus.OK : HttpStatus.CREATED;
-};
 
 @ApiTags("Wagering")
 @Controller("wagering/transactions")

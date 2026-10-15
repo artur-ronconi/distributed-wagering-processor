@@ -60,7 +60,7 @@ interface ApiError {
   correlationId?: string;
 }
 
-type Kind = "BET" | "WIN" | "LOSS" | "REFUND" | "ROLLBACK";
+type Kind = "BET" | "WIN" | "LOSS" | "REFUND" | "ROLLBACK" | "DEPOSIT" | "WITHDRAWAL";
 type TxStatus = "PENDING" | "PENDING_REFERENCE" | "PROCESSED" | "REJECTED" | "FAILED";
 
 interface Call<T> {
@@ -147,6 +147,11 @@ const api = {
     const body = referenceExternalTransactionId ? { ...rest, referenceExternalTransactionId } : rest;
     return call<TransactionResult>("POST", "/wagering/transactions", body, { "Idempotency-Key": idempotencyKey });
   },
+  /** Cashier operations: the Idempotency-Key is scoped to the wallet. */
+  deposit: (walletId: string, money: Money, idempotencyKey: string) =>
+    call<TransactionResult>("POST", `/wallets/${encodeURIComponent(walletId)}/deposits`, { money }, { "Idempotency-Key": idempotencyKey }),
+  withdraw: (walletId: string, money: Money, idempotencyKey: string) =>
+    call<TransactionResult>("POST", `/wallets/${encodeURIComponent(walletId)}/withdrawals`, { money }, { "Idempotency-Key": idempotencyKey }),
   transaction: (providerId: string, externalTransactionId: string) =>
     call<TransactionView>(
       "GET",

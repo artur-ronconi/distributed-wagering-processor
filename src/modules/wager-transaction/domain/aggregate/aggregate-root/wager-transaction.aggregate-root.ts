@@ -10,17 +10,23 @@ import {
 import { FailureCode } from "../../../../../shared/domain/failure-code";
 import { MoneyValueObject } from "../../../../wallet/domain/aggregate/value-objects/money/money.value-object";
 import { LedgerDirection } from "../../../../wallet/domain/aggregate/entities/wallet-ledger-entry/wallet-ledger-entry.props";
-import { WagerTransactionKind as Kind, WagerTransactionStatus as Status } from "./wager-transaction.enums";
+import {
+  PROVIDER_KINDS,
+  WagerTransactionKind as Kind,
+  WagerTransactionStatus as Status,
+} from "./wager-transaction.enums";
 import {
   type ICreateOpeningProps,
   type ICreateWagerTransactionProps,
+  type ICreateWalletOperationProps,
   type IWagerTransactionProps,
 } from "./wager-transaction.props";
 import {
+  INTERNAL_KIND_NOT_ALLOWED,
   INVALID_WAGER_AMOUNT,
   INVALID_WAGER_TRANSACTION,
+  INVALID_WALLET_OPERATION,
   InvalidTransactionStateError,
-  OPENING_NOT_ALLOWED,
   REFERENCE_AMOUNT_MISMATCH,
   REFERENCE_KIND_NOT_ALLOWED,
   REFERENCE_MISMATCH,
@@ -29,6 +35,8 @@ import {
 } from "./wager-transaction.errors";
 
 const INTERNAL_PROVIDER_ID = "internal";
+const WALLET_OPERATION_ROUND_ID = "wallet-operation";
+const WALLET_OPERATION_GAME_ID = "wallet";
 
 const TERMINAL_STATUSES = [Status.Processed, Status.Rejected, Status.Failed];
 const UNDECIDED_STATUSES = [Status.Pending, Status.PendingReference];
@@ -134,8 +142,10 @@ class WagerTransactionAggregate extends Aggregate<IWagerTransactionProps> {
       case Kind.Opening:
       case Kind.Win:
       case Kind.Refund:
+      case Kind.Deposit:
         return LedgerDirection.Credit;
       case Kind.Bet:
+      case Kind.Withdrawal:
         return LedgerDirection.Debit;
       case Kind.Rollback: {
         if (!reference) throw new Error("ROLLBACK needs its reference to know the direction.");
@@ -203,8 +213,10 @@ class WagerTransactionAggregate extends Aggregate<IWagerTransactionProps> {
   // ---- factories
   /** Submitted by a provider (HTTP or SQS). Born PENDING. */
   static create(props: ICreateWagerTransactionProps) {
-    if (props.kind === Kind.Opening) return Output.fail(OPENING_NOT_ALLOWED);
-    if (!Object.values(Kind).includes(props.kind)) return Output.fail(INVALID_WAGER_TRANSACTION);
+    if (!PROVIDER_KINDS.includes(props.kind)) {
+      const internal = Object.values(Kind).includes(props.kind);
+      return Output.fail(internal ? INTERNAL_KIND_NOT_ALLOWED : INVALID_WAGER_TRANSACTION);
+    }
 
     const transaction = new WagerTransactionAggregate({
       ...props,
@@ -248,6 +260,40 @@ class WagerTransactionAggregate extends Aggregate<IWagerTransactionProps> {
       processedAt: now,
       referenceAttempts: 0,
     });
+  }
+
+  /**
+   * Deposit or withdrawal of one wallet. Born PENDING and decided by the same processor as the
+   * provider transactions, so balance, ledger, idempotency and events follow the same rules.
+   * The client's key is scoped to the wallet: "internal:{walletId}:{key}".
+   */
+  static createWalletOperation(props: ICreateWalletOperationProps) {
+    if (props.kind !== Kind.Deposit && props.kind !== Kind.Withdrawal) return Output.fail(INVALID_WAGER_TRANSACTION);
+    if (!props.money.isPositive()) return Output.fail(INVALID_WALLET_OPERATION);
+
+    const transaction = new WagerTransactionAggregate({
+      id: IdValueObject.getDefault(),
+      providerId: INTERNAL_PROVIDER_ID,
+      externalTransactionId: `${props.kind.toLowerCase()}:${props.walletId.value}:${props.clientIdempotencyKey}`,
+      idempotencyKey: WagerTransactionAggregate.walletOperationKey(props.walletId, props.clientIdempotencyKey),
+      payloadHash: props.payloadHash,
+      walletId: props.walletId,
+      playerId: props.playerId,
+      roundId: WALLET_OPERATION_ROUND_ID,
+      gameId: WALLET_OPERATION_GAME_ID,
+      kind: props.kind,
+      money: props.money,
+      status: Status.Pending,
+      referenceAttempts: 0,
+    });
+    if (!transaction.isValidProps()) return Output.fail(INVALID_WAGER_TRANSACTION);
+
+    return Output.success(transaction);
+  }
+
+  /** Idempotency key stored for a wallet operation (the client's key scoped to the wallet). */
+  static walletOperationKey(walletId: IdValueObject, clientIdempotencyKey: string): string {
+    return `${INTERNAL_PROVIDER_ID}:${walletId.value}:${clientIdempotencyKey}`;
   }
 
   /** Rebuilds persisted state. Does not revalidate transitions. */

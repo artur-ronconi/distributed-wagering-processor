@@ -13,6 +13,16 @@ OLD_README §6.3, §7 e §9. Convenções gerais em @docs/domain/shared.md.
 
 O lançamento no extrato é outra classe (@docs/domain/wallet-ledger-entry.md) e só existe quando o dinheiro de fato se move.
 
+Além dos cinco kinds dos provedores, existem três **kinds internos**, criados só por este serviço e sempre com `providerId = "internal"`:
+
+| Kind | Quem cria | Factory |
+|---|---|---|
+| `OPENING` | `POST /wallets` com saldo inicial | `createOpening` (nasce `PROCESSED`) |
+| `DEPOSIT` | `POST /wallets/:walletId/deposits` (@docs/routes/deposit-to-wallet.md) | `createWalletOperation` (nasce `PENDING`) |
+| `WITHDRAWAL` | `POST /wallets/:walletId/withdrawals` (@docs/routes/withdraw-from-wallet.md) | `createWalletOperation` (nasce `PENDING`) |
+
+Depósito e saque não estão no OLD_README: são uma extensão. Eles reutilizam esta classe para herdar, sem código novo, a idempotência, o lock da carteira, o extrato, a outbox e a reconciliação.
+
 ## Máquina de estados
 
 ```
@@ -41,7 +51,8 @@ Na prática, a transação nasce `PENDING` em memória e é decidida antes do co
 
 ## Regras
 
-- `OPENING` é interno: `create` recusa e só `createOpening` gera esse kind.
+- `OPENING`, `DEPOSIT` e `WITHDRAWAL` são internos: `create` (a factory dos provedores) só aceita `PROVIDER_KINDS` e recusa os internos com `INVALID_PAYLOAD` (400). O banco reforça: a constraint `wager_tx_internal_kinds_internal_provider` só aceita esses kinds com `provider_id = 'internal'`.
+- `DEPOSIT` e `WITHDRAWAL` não têm referência e exigem valor **positivo** (`INVALID_AMOUNT` para `0.00`). A `idempotencyKey` gravada é a do cliente com escopo na carteira: `internal:{walletId}:{key}`.
 - `REFUND` e `ROLLBACK` exigem `referenceExternalTransactionId`. `WIN` pode ter (aponta para a `BET`).
 - Valor: positivo para kinds que mexem no saldo. `LOSS` aceita `0.00` ou mais.
 - A referência é buscada por `(providerId, referenceExternalTransactionId)` e precisa ser do **mesmo provider, player, wallet, moeda e rodada** (`validateReference`).
@@ -56,8 +67,8 @@ Na prática, a transação nasce `PENDING` em memória e é decidida antes do co
 
 | Kind | Direção |
 |---|---|
-| `OPENING`, `WIN`, `REFUND` | `CREDIT` |
-| `BET` | `DEBIT` |
+| `OPENING`, `WIN`, `REFUND`, `DEPOSIT` | `CREDIT` |
+| `BET`, `WITHDRAWAL` | `DEBIT` |
 | `LOSS` | não tem (lança erro: `affectsBalance()` é `false`) |
 | `ROLLBACK` de `BET` | `CREDIT` |
 | `ROLLBACK` de `WIN` ou `REFUND` | `DEBIT` |
@@ -71,7 +82,21 @@ enum WagerTransactionKind {
   Loss = "LOSS",
   Refund = "REFUND",
   Rollback = "ROLLBACK",
+  Deposit = "DEPOSIT", // internal: money added to the wallet (POST /wallets/:walletId/deposits)
+  Withdrawal = "WITHDRAWAL", // internal: money taken from the wallet (POST /wallets/:walletId/withdrawals)
 }
+
+/** What a game provider may submit (HTTP or SQS). Everything else is created by this service only. */
+const PROVIDER_KINDS: readonly WagerTransactionKind[] = [
+  WagerTransactionKind.Bet,
+  WagerTransactionKind.Win,
+  WagerTransactionKind.Loss,
+  WagerTransactionKind.Refund,
+  WagerTransactionKind.Rollback,
+];
+
+/** Wallet operations: move money in or out, outside a game round. */
+type WalletOperationKind = WagerTransactionKind.Deposit | WagerTransactionKind.Withdrawal;
 
 enum WagerTransactionStatus {
   Pending = "PENDING",                     // accepted, not applied yet
@@ -81,7 +106,7 @@ enum WagerTransactionStatus {
   Failed = "FAILED",                       // permanent infrastructure error (terminal, auditable)
 }
 
-export { WagerTransactionKind, WagerTransactionStatus };
+export { PROVIDER_KINDS, WagerTransactionKind, WagerTransactionStatus, type WalletOperationKind };
 ```
 
 ## wager-transaction.props.ts
@@ -138,7 +163,18 @@ interface ICreateOpeningProps {
   payloadHash: string;
 }
 
-export { IWagerTransactionProps, ICreateWagerTransactionProps, ICreateOpeningProps };
+/** Deposit or withdrawal requested for one wallet. The client's Idempotency-Key is scoped to the wallet. */
+interface ICreateWalletOperationProps {
+  kind: WalletOperationKind;
+  walletId: IdValueObject;
+  playerId: string;
+  money: MoneyValueObject;
+  /** The client's Idempotency-Key, as received. */
+  clientIdempotencyKey: string;
+  payloadHash: string;
+}
+
+export { IWagerTransactionProps, ICreateWagerTransactionProps, ICreateOpeningProps, ICreateWalletOperationProps };
 ```
 
 ## wager-transaction.errors.ts
@@ -153,9 +189,15 @@ const INVALID_WAGER_TRANSACTION: IDomainError = {
   statusCode: HttpStatus.BAD_REQUEST,
 };
 
-const OPENING_NOT_ALLOWED: IDomainError = {
+const INTERNAL_KIND_NOT_ALLOWED: IDomainError = {
   code: FailureCode.InvalidPayload,
-  message: "OPENING is internal and cannot be submitted.",
+  message: "OPENING, DEPOSIT and WITHDRAWAL are internal operations and cannot be submitted by a provider.",
+  statusCode: HttpStatus.BAD_REQUEST,
+};
+
+const INVALID_WALLET_OPERATION: IDomainError = {
+  code: FailureCode.InvalidAmount,
+  message: "Deposits and withdrawals must have a positive amount.",
   statusCode: HttpStatus.BAD_REQUEST,
 };
 
@@ -235,7 +277,8 @@ class InvalidTransactionStateError extends Error {
 
 export {
   INVALID_WAGER_TRANSACTION,
-  OPENING_NOT_ALLOWED,
+  INTERNAL_KIND_NOT_ALLOWED,
+  INVALID_WALLET_OPERATION,
   REFERENCE_REQUIRED,
   INVALID_WAGER_AMOUNT,
   IDEMPOTENCY_CONFLICT,
@@ -265,17 +308,19 @@ import {
 import { FailureCode } from "../shared/failure-code";
 import { MoneyValueObject } from "../money/money.value-object";
 import { LedgerDirection } from "../wallet-ledger-entry/wallet-ledger-entry.props";
-import { WagerTransactionKind as Kind, WagerTransactionStatus as Status } from "./wager-transaction.enums";
+import { PROVIDER_KINDS, WagerTransactionKind as Kind, WagerTransactionStatus as Status } from "./wager-transaction.enums";
 import {
   ICreateOpeningProps,
   ICreateWagerTransactionProps,
+  ICreateWalletOperationProps,
   IWagerTransactionProps,
 } from "./wager-transaction.props";
 import {
+  INTERNAL_KIND_NOT_ALLOWED,
   INVALID_WAGER_AMOUNT,
   INVALID_WAGER_TRANSACTION,
+  INVALID_WALLET_OPERATION,
   InvalidTransactionStateError,
-  OPENING_NOT_ALLOWED,
   REFERENCE_AMOUNT_MISMATCH,
   REFERENCE_KIND_NOT_ALLOWED,
   REFERENCE_MISMATCH,
@@ -284,6 +329,8 @@ import {
 } from "./wager-transaction.errors";
 
 const INTERNAL_PROVIDER_ID = "internal";
+const WALLET_OPERATION_ROUND_ID = "wallet-operation";
+const WALLET_OPERATION_GAME_ID = "wallet";
 
 const TERMINAL_STATUSES = [Status.Processed, Status.Rejected, Status.Failed];
 const UNDECIDED_STATUSES = [Status.Pending, Status.PendingReference];
@@ -389,8 +436,10 @@ class WagerTransactionAggregate extends Aggregate<IWagerTransactionProps> {
       case Kind.Opening:
       case Kind.Win:
       case Kind.Refund:
+      case Kind.Deposit:
         return LedgerDirection.Credit;
       case Kind.Bet:
+      case Kind.Withdrawal:
         return LedgerDirection.Debit;
       case Kind.Rollback: {
         if (!reference) throw new Error("ROLLBACK needs its reference to know the direction.");
@@ -458,8 +507,10 @@ class WagerTransactionAggregate extends Aggregate<IWagerTransactionProps> {
   // ---- factories
   /** Submitted by a provider (HTTP or SQS). Born PENDING. */
   static create(props: ICreateWagerTransactionProps) {
-    if (props.kind === Kind.Opening) return Output.fail(OPENING_NOT_ALLOWED);
-    if (!Object.values(Kind).includes(props.kind)) return Output.fail(INVALID_WAGER_TRANSACTION);
+    if (!PROVIDER_KINDS.includes(props.kind)) {
+      const internal = Object.values(Kind).includes(props.kind);
+      return Output.fail(internal ? INTERNAL_KIND_NOT_ALLOWED : INVALID_WAGER_TRANSACTION);
+    }
 
     const transaction = new WagerTransactionAggregate({
       ...props,
@@ -503,6 +554,40 @@ class WagerTransactionAggregate extends Aggregate<IWagerTransactionProps> {
       processedAt: now,
       referenceAttempts: 0,
     });
+  }
+
+  /**
+   * Deposit or withdrawal of one wallet. Born PENDING and decided by the same processor as the
+   * provider transactions, so balance, ledger, idempotency and events follow the same rules.
+   * The client's key is scoped to the wallet: "internal:{walletId}:{key}".
+   */
+  static createWalletOperation(props: ICreateWalletOperationProps) {
+    if (props.kind !== Kind.Deposit && props.kind !== Kind.Withdrawal) return Output.fail(INVALID_WAGER_TRANSACTION);
+    if (!props.money.isPositive()) return Output.fail(INVALID_WALLET_OPERATION);
+
+    const transaction = new WagerTransactionAggregate({
+      id: IdValueObject.getDefault(),
+      providerId: INTERNAL_PROVIDER_ID,
+      externalTransactionId: `${props.kind.toLowerCase()}:${props.walletId.value}:${props.clientIdempotencyKey}`,
+      idempotencyKey: WagerTransactionAggregate.walletOperationKey(props.walletId, props.clientIdempotencyKey),
+      payloadHash: props.payloadHash,
+      walletId: props.walletId,
+      playerId: props.playerId,
+      roundId: WALLET_OPERATION_ROUND_ID,
+      gameId: WALLET_OPERATION_GAME_ID,
+      kind: props.kind,
+      money: props.money,
+      status: Status.Pending,
+      referenceAttempts: 0,
+    });
+    if (!transaction.isValidProps()) return Output.fail(INVALID_WAGER_TRANSACTION);
+
+    return Output.success(transaction);
+  }
+
+  /** Idempotency key stored for a wallet operation (the client's key scoped to the wallet). */
+  static walletOperationKey(walletId: IdValueObject, clientIdempotencyKey: string): string {
+    return `${INTERNAL_PROVIDER_ID}:${walletId.value}:${clientIdempotencyKey}`;
   }
 
   /** Rebuilds persisted state. Does not revalidate transitions. */
@@ -556,7 +641,7 @@ create table "wager_transactions" (
   "player_id"                         text          not null,
   "round_id"                          text          not null,
   "game_id"                           text          not null,
-  "kind"                              text          not null check ("kind" in ('OPENING','BET','WIN','LOSS','REFUND','ROLLBACK')),
+  "kind"                              text          not null check ("kind" in ('OPENING','BET','WIN','LOSS','REFUND','ROLLBACK','DEPOSIT','WITHDRAWAL')),
   "amount"                            numeric(19,2) not null check ("amount" >= 0),
   "currency"                          char(3)       not null,
   "reference_external_transaction_id" text,
@@ -575,6 +660,10 @@ create table "wager_transactions" (
   check ("status" <> 'REJECTED' or "failure_code" is not null)
 );
 
+-- Migration20261015120000WalletOperations: internal kinds only for the internal provider
+alter table "wager_transactions" add constraint "wager_tx_internal_kinds_internal_provider"
+  check ("kind" not in ('OPENING', 'DEPOSIT', 'WITHDRAWAL') or "provider_id" = 'internal');
+
 -- A reference is reverted at most once, REFUND and ROLLBACK together (OLD_README §7 rule 4, stricter reading)
 create unique index "wager_tx_single_reversal"
   on "wager_transactions" ("reference_transaction_id")
@@ -588,7 +677,8 @@ create index "wager_tx_pending_reference_due"
 
 ## Testes unitários obrigatórios
 
-- `create` recusa `OPENING`, `REFUND`/`ROLLBACK` sem referência e valor zero (exceto `LOSS`).
+- `create` recusa os kinds internos (`OPENING`, `DEPOSIT`, `WITHDRAWAL`), `REFUND`/`ROLLBACK` sem referência e valor zero (exceto `LOSS`).
+- `createWalletOperation`: nasce `PENDING` com `providerId = "internal"`, key com escopo na carteira, `DEPOSIT` → `CREDIT`, `WITHDRAWAL` → `DEBIT`, valor zero recusado, outro kind recusado.
 - Transições válidas da tabela e **todas** as inválidas lançando `InvalidTransactionStateError` (ex.: `markProcessed` em `REJECTED`).
 - `affectsBalance` é `false` só para `LOSS`. `requiresReference` é `true` só para `REFUND` e `ROLLBACK`.
 - `ledgerDirectionFor` para cada kind, incluindo `ROLLBACK` de `BET`, `WIN` e `REFUND`.

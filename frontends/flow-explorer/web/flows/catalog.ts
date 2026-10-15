@@ -30,6 +30,10 @@ const F = {
   balanceChanged: "src/modules/wallet/domain/events/wallet-balance-changed.event.ts",
 
   submitCtrl: "src/modules/wager-transaction/presentation/controllers/submit-wager-transaction.controller.ts",
+  resultStatus: "src/modules/wager-transaction/presentation/controllers/transaction-result-status.ts",
+  depositCtrl: "src/modules/wallet/presentation/controllers/deposit-to-wallet.controller.ts",
+  withdrawCtrl: "src/modules/wallet/presentation/controllers/withdraw-from-wallet.controller.ts",
+  moveFundsUc: "src/modules/wallet/domain/usecases/move-wallet-funds/move-wallet-funds.usecase.ts",
   submitUc: "src/modules/wager-transaction/domain/usecases/submit-wager-transaction/submit-wager-transaction.usecase.ts",
   payloadHash: "src/modules/wager-transaction/domain/usecases/submit-wager-transaction/wager-payload-hash.ts",
   processor: "src/modules/wager-transaction/domain/usecases/process-wager-transaction/wager-transaction.processor.ts",

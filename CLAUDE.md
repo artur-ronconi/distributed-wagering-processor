@@ -122,6 +122,7 @@ O `IdValueObject` do `ddd-tool-kit` só aceita ids de 16 caracteres (não UUID):
 ## Processamento
 
 - HTTP `POST /wagering/transactions` e o consumer SQS chamam **o mesmo use case**.
+- **Extensão fora do OLD_README:** depósito e saque (`POST /wallets/:walletId/deposits` e `/withdrawals`) são `WagerTransaction` internas (`DEPOSIT`, `WITHDRAWAL`, provedor `internal`) decididas pelo mesmo `processor.decide()`. Provedores nunca criam kinds internos (código e constraint no banco). Ver `docs/routes/deposit-to-wallet.md` e `ARCHITECTURE.md` §14.
 - O consumer deduplica pela inbox `(consumerName, messageId)`, dá **ack só depois do commit** e separa erros de negócio (ack), transitórios (retry com backoff) e permanentes (DLQ). Em `SIGTERM`, termina o que está em andamento ou devolve a visibilidade.
 - O outbox publisher roda em várias instâncias (`FOR UPDATE SKIP LOCKED`) e garante at-least-once.
 - Transações `PENDING_REFERENCE` são reprocessadas por um worker agendado com backoff exponencial e limite definido.

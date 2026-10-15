@@ -72,9 +72,19 @@ const createWallet = async (nickname: string, currency: string, initialBalance: 
   return { call, explanation };
 };
 
-/** Sends one transaction, records what came back and refreshes the balance. */
+const isCashier = (kind: Kind) => kind === "DEPOSIT" || kind === "WITHDRAWAL";
+
+/**
+ * Sends one transaction, records what came back and refreshes the balance. Deposits and withdrawals go
+ * to the wallet cashier routes, everything else to POST /wagering/transactions.
+ */
 const send = async (input: SubmitInput, title: string): Promise<Outcome> => {
-  const call = await api.submit(input);
+  const cashier = isCashier(input.kind);
+  const call = !cashier
+    ? await api.submit(input)
+    : input.kind === "DEPOSIT"
+      ? await api.deposit(input.walletId, input.money, input.idempotencyKey)
+      : await api.withdraw(input.walletId, input.money, input.idempotencyKey);
   const explanation = explainSubmit(call.status, call.data, call.error);
   activity.add(title, call, explanation);
 
@@ -101,10 +111,31 @@ const send = async (input: SubmitInput, title: string): Promise<Outcome> => {
       httpStatus: call.status,
       payload: input,
       replays: (known?.replays ?? 0) + (replay ? 1 : 0),
+      channel: cashier ? "cashier" : "wager",
     });
   }
   if (store.wallet(input.walletId)) await refreshWallet(input.walletId);
   return { call, explanation, tx: store.transaction(input.externalTransactionId) };
+};
+
+/**
+ * Deposit or withdrawal through the cashier routes. The backend scopes the key to the wallet and stores
+ * the operation as an internal transaction with this externalTransactionId.
+ */
+const moveFunds = (wallet: ConsoleWallet, operation: "DEPOSIT" | "WITHDRAWAL", amount: string) => {
+  const key = `console:${randomToken(8)}`;
+  const input: SubmitInput = {
+    providerId: "internal",
+    externalTransactionId: `${operation.toLowerCase()}:${wallet.id}:${key}`,
+    idempotencyKey: key,
+    playerId: wallet.playerId,
+    walletId: wallet.id,
+    roundId: "wallet-operation",
+    gameId: "wallet",
+    kind: operation,
+    money: { amount, currency: wallet.currency },
+  };
+  return send(input, `${operation === "DEPOSIT" ? "Depósito" : "Saque"} de ${amount} ${wallet.currency}`);
 };
 
 const bet = async (wallet: ConsoleWallet, amount: string, game: Round["game"] = "mesa", pick?: Round["pick"]) => {
@@ -214,4 +245,22 @@ const pollPending = async () => {
   }
 };
 
-export { bet, buildInput, coinFlip, createWallet, GAME, loss, newRoundId, pollPending, PROVIDER_ID, refreshWallet, refund, resend, rollback, send, win, type Outcome };
+export {
+  bet,
+  buildInput,
+  coinFlip,
+  createWallet,
+  GAME,
+  loss,
+  moveFunds,
+  newRoundId,
+  pollPending,
+  PROVIDER_ID,
+  refreshWallet,
+  refund,
+  resend,
+  rollback,
+  send,
+  win,
+  type Outcome,
+};

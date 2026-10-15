@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Caminho da Mensagem SQS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: pipeline vertical à esquerda (fila → consumer → transação SQL → veredito → workers),
+   narração do cenário escolhido à direita; empilha em uma coluna no celular. */
+:root {
+  --bg: #eef1f0;
+  --surface: #ffffff;
+  --sunk: #f6f8f7;
+  --ink: #16211d;
+  --muted: #5b6a64;
+  --line: #d3dbd7;
+  --accent: #2f49c9;
+  --on-accent: #ffffff;
+  --ok: #1d7a4c;
+  --rej: #b0462f;
+  --bad: #b3261e;
+  --retry: #9a5d00;
+  --wait: #6a4cc0;
+  --on-tone: #ffffff;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1412; --surface: #161f1c; --sunk: #121a17; --ink: #e4ebe8; --muted: #94a49d; --line: #2a3631;
+    --accent: #93a6ff; --on-accent: #0e1412;
+    --ok: #5cc48e; --rej: #f08c72; --bad: #ff7a6e; --retry: #e3a540; --wait: #b5a0ff; --on-tone: #0e1412;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1412; --surface: #161f1c; --sunk: #121a17; --ink: #e4ebe8; --muted: #94a49d; --line: #2a3631;
+  --accent: #93a6ff; --on-accent: #0e1412;
+  --ok: #5cc48e; --rej: #f08c72; --bad: #ff7a6e; --retry: #e3a540; --wait: #b5a0ff; --on-tone: #0e1412;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-block: 40px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid;
+  gap: 28px;
+}
+code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+
+/* Cabeçalho */
+.head { display: grid; gap: 10px; max-width: 760px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: clamp(30px, 5vw, 44px); font-weight: 700; line-height: 1.05; letter-spacing: -0.01em; }
+.lede { margin: 0; color: var(--muted); max-width: 66ch; }
+.lede code { color: var(--ink); }
+
+/* Seletor de cenários */
+.picker { display: grid; gap: 10px; }
+.picker-label { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font: inherit; font-size: 14px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 12px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+}
+.chip:hover { border-color: var(--accent); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--tone); flex: none; }
+.chip[aria-pressed="true"] .dot { box-shadow: 0 0 0 2px var(--on-accent); }
+button:focus-visible, .step:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Tons */
+.t-ok { --tone: var(--ok); } .t-rej { --tone: var(--rej); } .t-bad { --tone: var(--bad); }
+.t-retry { --tone: var(--retry); } .t-wait { --tone: var(--wait); } .t-neutral { --tone: var(--muted); }
+
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 28px; align-items: start; }
+@media (max-width: 920px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .panel { order: -1; position: static !important; max-height: none !important; }
+}
+
+/* Diagrama */
+.flow { display: grid; gap: 0; min-width: 0; }
+.hop { display: grid; grid-template-columns: 22px 1fr; align-items: center; min-height: 34px; color: var(--muted); font-size: 12.5px; }
+.hop::before { content: ""; justify-self: center; width: 2px; height: 100%; background: var(--line); }
+.hop span { padding-left: 8px; font-family: var(--font-mono); font-size: 12px; }
+.zone {
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+  padding: 14px; display: grid; gap: 12px; min-width: 0;
+  transition: opacity 0.25s;
+}
+.zone-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.zone-head h2 { font-size: 15px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.zone-head .sub { color: var(--muted); font-size: 13px; }
+.zone.sql { border: 2px solid var(--accent); background: var(--sunk); position: relative; }
+.zone.sql .zone-head h2 { color: var(--accent); }
+.sql-tag { font-family: var(--font-mono); font-size: 11.5px; font-weight: 500; color: var(--accent); letter-spacing: 0.04em; }
+
+.rail { position: relative; display: grid; gap: 10px; padding-left: 26px; }
+.rail::before { content: ""; position: absolute; left: 9px; top: 10px; bottom: 10px; width: 2px; background: var(--line); }
+.grid2, .grid3 { display: grid; gap: 10px; }
+.grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 640px) { .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); } }
+
+.node {
+  position: relative; min-width: 0;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+  padding: 10px 12px; display: grid; gap: 4px;
+  transition: opacity 0.25s, border-color 0.25s, box-shadow 0.25s;
+}
+.zone.sql .node { background: var(--surface); }
+.rail .node::before {
+  content: ""; position: absolute; left: -22px; top: 13px; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--line);
+}
+.node-title { font-family: var(--font-display); font-weight: 600; font-size: 16px; line-height: 1.25; padding-right: 44px; }
+.node-code { font-family: var(--font-mono); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.node-desc { font-size: 13.5px; color: var(--muted); margin: 2px 0 0; max-width: 70ch; }
+.node.v-ok { border-top: 3px solid var(--ok); }
+.node.v-retry { border-top: 3px solid var(--retry); }
+.node.v-bad { border-top: 3px solid var(--bad); }
+.node.v-wait { border-top: 3px solid var(--wait); }
+.badge {
+  position: absolute; top: 8px; right: 8px;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  padding: 1px 7px; border-radius: 999px; background: var(--accent); color: var(--on-accent);
+  font-variant-numeric: tabular-nums;
+}
+.badge:empty { display: none; }
+
+.exits { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.exit {
+  font-size: 12px; line-height: 1.35; padding: 3px 9px; border-radius: 999px;
+  color: var(--tone); border: 1px solid color-mix(in srgb, var(--tone) 45%, transparent);
+  background: color-mix(in srgb, var(--tone) 8%, transparent);
+  transition: background 0.25s, color 0.25s, opacity 0.25s;
+}
+.exit.hit { background: var(--tone); border-color: var(--tone); color: var(--on-tone); font-weight: 600; }
+
+/* Estado do cenário */
+.has-scn .zone:not(.on) { opacity: 0.5; }
+.has-scn .node:not(.on) { opacity: 0.4; }
+.has-scn .node.on .exit:not(.hit) { opacity: 0.5; }
+.node.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.rail .node.on::before { background: var(--accent); border-color: var(--accent); }
+.node.on.later { opacity: 0.4; box-shadow: none; border-color: var(--line); }
+.node.on.later .badge { background: var(--line); color: var(--muted); }
+.node.focus { box-shadow: 0 0 0 3px var(--accent); }
+
+/* Painel */
+.panel {
+  position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px);
+  max-height: calc(100vh - 32px); overflow: auto;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+  padding: 16px; display: grid; gap: 12px; align-content: start;
+}
+.panel h3 { font-size: 22px; font-weight: 700; line-height: 1.15; }
+.panel .summary { margin: 0; color: var(--muted); font-size: 14px; }
+.outcome {
+  justify-self: start; display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono); font-size: 12.5px; font-weight: 500;
+  padding: 4px 10px; border-radius: 6px; background: var(--tone); color: var(--on-tone);
+}
+.controls { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn {
+  font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+  padding: 7px 12px; border-radius: 8px; border: 1px solid var(--accent);
+  background: var(--accent); color: var(--on-accent);
+}
+.btn.ghost { background: transparent; color: var(--accent); }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; counter-reset: s; }
+.step {
+  display: grid; grid-template-columns: 28px 1fr; gap: 2px 8px; padding: 8px 6px; border-radius: 8px;
+  cursor: pointer; transition: opacity 0.25s, background 0.2s;
+}
+.step:hover, .step.active { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.step .n {
+  grid-row: span 2; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+  font-family: var(--font-mono); font-size: 11.5px; font-weight: 500;
+  background: var(--accent); color: var(--on-accent); font-variant-numeric: tabular-nums;
+}
+.step .where { font-family: var(--font-display); font-weight: 600; font-size: 14px; }
+.step .what { font-size: 13.5px; color: var(--muted); }
+.step .what code, .node-desc code { color: var(--ink); }
+.step.hidden { opacity: 0.25; }
+.step.exit-step .n { background: var(--tone); color: var(--on-tone); }
+
+/* Seções de apoio */
+.extra { display: grid; gap: 16px; }
+.extra h2 { font-size: 22px; font-weight: 700; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.card { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 14px; display: grid; gap: 6px; align-content: start; }
+.card h3 { font-size: 17px; font-weight: 600; }
+.card p { margin: 0; color: var(--muted); font-size: 14px; }
+.card p code { color: var(--ink); }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .two { grid-template-columns: minmax(0, 1fr); } }
+pre {
+  margin: 0; overflow-x: auto; padding: 14px; border-radius: 10px;
+  background: var(--sunk); border: 1px solid var(--line);
+  font-family: var(--font-mono); font-size: 12.5px; line-height: 1.55;
+}
+.k { color: var(--accent); } .s { color: var(--ok); }
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; }
+td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.foot { color: var(--muted); font-size: 13px; }
+.foot code { color: var(--ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  .zone, .node, .exit, .step { transition: none; }
+}
+</style>
+
+<div class="page">
+  <header class="head">
+    <div class="eyebrow">Distributed Wagering Processor · porta de entrada SQS</div>
+    <h1>Caminho de uma mensagem na fila</h1>
+    <p class="lede">O que acontece desde que o provedor publica um <code>WagerTransactionRequested</code> em <code>wager-transactions.fifo</code> até a mensagem sair da fila. O consumer chama <strong>o mesmo use case</strong> do <code>POST /wagering/transactions</code>; a diferença é a inbox e o veredito no fim (ack, retry ou DLQ). Escolha um cenário para ver o caminho que ele percorre.</p>
+  </header>
+
+  <section class="picker" aria-label="Cenários">
+    <div class="picker-label">Cenário</div>
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <div class="layout">
+    <div class="flow" id="flow"></div>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </div>
+
+  <section class="extra">
+    <h2>Por que nada é debitado duas vezes</h2>
+    <div class="cards">
+      <div class="card"><h3>Inbox por mensagem</h3><p><code>UNIQUE (consumer_name, message_id)</code>. A mesma mensagem entregue de novo cai no <code>ON CONFLICT</code> e não roda mais nada.</p></div>
+      <div class="card"><h3>Idempotency-Key por transação</h3><p><code>UNIQUE (idempotency_key)</code> + <code>payloadHash</code>. Outra mensagem com a mesma transação vira replay; com conteúdo diferente, conflito.</p></div>
+      <div class="card"><h3>Lock só da carteira</h3><p><code>SELECT … FOR UPDATE</code> enfileira quem mexe na mesma carteira. A segunda leitura da key depois do lock pega a cópia que comitou enquanto esperávamos.</p></div>
+      <div class="card"><h3>Ack depois do commit</h3><p>Se a instância morrer entre o commit e o <code>DeleteMessage</code>, a mensagem volta em 30 s e a inbox a reconhece. Nada se perde, nada se repete.</p></div>
+      <div class="card"><h3>Eventos pela outbox</h3><p>Os eventos são linhas gravadas na mesma transação do dinheiro. Só o publisher manda para o SQS, e só o que já foi comitado.</p></div>
+      <div class="card"><h3>O banco tem a palavra final</h3><p>A ordem FIFO e a deduplicação do SQS ajudam, mas a correção vem das constraints, do lock e da <code>version</code> da carteira.</p></div>
+    </div>
+
+    <div class="two">
+      <div class="extra">
+        <h2>A mensagem</h2>
+        <pre><code>{
+  <span class="k">"messageId"</span>: <span class="s">"msg-123"</span>,
+  <span class="k">"type"</span>: <span class="s">"WagerTransactionRequested"</span>,
+  <span class="k">"occurredAt"</span>: <span class="s">"2026-07-29T15:00:00.000Z"</span>,
+  <span class="k">"data"</span>: {
+    <span class="k">"providerId"</span>: <span class="s">"provider-a"</span>,
+    <span class="k">"externalTransactionId"</span>: <span class="s">"transaction-123"</span>,
+    <span class="k">"idempotencyKey"</span>: <span class="s">"provider-a:transaction-123"</span>,
+    <span class="k">"playerId"</span>: <span class="s">"0192f28f-5dc0-7d58-…"</span>,
+    <span class="k">"walletId"</span>: <span class="s">"4f1c2a9be07d3e58"</span>,
+    <span class="k">"roundId"</span>: <span class="s">"round-987"</span>,
+    <span class="k">"gameId"</span>: <span class="s">"fortune-chimp"</span>,
+    <span class="k">"kind"</span>: <span class="s">"BET"</span>,
+    <span class="k">"money"</span>: { <span class="k">"amount"</span>: <span class="s">"25.00"</span>, <span class="k">"currency"</span>: <span class="s">"BRL"</span> }
+  }
+}</code></pre>
+        <p class="foot"><code>messageId</code> identifica a <em>mensagem</em> (inbox). <code>idempotencyKey</code> identifica a <em>transação</em>. Uma transação pode chegar em várias mensagens.</p>
+      </div>
+      <div class="extra">
+        <h2>Os números</h2>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Parâmetro</th><th>Valor</th></tr></thead>
+            <tbody>
+              <tr><td>Mensagens por ReceiveMessage</td><td class="num">10</td></tr>
+              <tr><td>Long poll</td><td class="num">5 s</td></tr>
+              <tr><td>Visibility timeout</td><td class="num">30 s</td></tr>
+              <tr><td>Backoff de retry</td><td class="num">2ⁿ s, máx. 300 s</td></tr>
+              <tr><td>maxReceiveCount (redrive → DLQ)</td><td class="num">5</td></tr>
+              <tr><td>Retenção da DLQ</td><td class="num">14 dias</td></tr>
+              <tr><td>Tentativas na corrida de UNIQUE</td><td class="num">3</td></tr>
+              <tr><td>Outbox publisher</td><td class="num">500 ms · lote 50</td></tr>
+              <tr><td>Worker de pendências</td><td class="num">1 s · 2 s…60 s · 10×</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="foot">Valores padrão de <code>src/config/app-config.ts</code> e <code>docker/localstack/init-sqs.sh</code>.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const NODES = {
+  queue: { t: "wager-transactions.fifo", c: "SQS FIFO (LocalStack)", d: "O provedor publica <code>WagerTransactionRequested</code>. <code>MessageGroupId = walletId</code> ordena por carteira, mas isso é otimização: quem garante a correção é o banco." },
+  receive: { t: "Recebe um lote", c: "ReceiveMessage · long poll", d: "Até 10 mensagens, esperando até 5 s. Cada mensagem recebida fica invisível por 30 s para as outras instâncias. O lote é processado em sequência para manter a ordem do grupo.",
+    x: [{ id: "receive-stop", t: "SIGTERM: termina a atual e devolve as não iniciadas", tone: "neutral" }] },
+  parse: { t: "Lê a mensagem e monta a inbox", c: "parse() · InboxMessage.receive()", d: "A chave de deduplicação é o <code>messageId</code> do provedor, estável entre republicações (sem ele, usa o MessageId do SQS). <code>payloadHash</code> = SHA-256 do corpo.",
+    x: [{ id: "parse-bad", t: "JSON quebrado ou type errado → DLQ (MALFORMED_MESSAGE)", tone: "bad" }] },
+  prepare: { t: "Valida sem tocar no banco", c: "SubmitWagerTransactionUseCase.prepare()", d: "Idempotency-Key de 1 a 256 caracteres, campos externos até 128, <code>Money</code> com exatamente 2 casas, walletId de 16 caracteres, kind válido e referência quando obrigatória. A WagerTransaction nasce <code>PENDING</code> em memória.",
+    x: [{ id: "prepare-bad", t: "Inválido → INVALID_PAYLOAD / INVALID_AMOUNT, sem abrir transação", tone: "bad" }] },
+  begin: { t: "Abre a transação", c: "uow.transactional()", d: "Daqui até o COMMIT, tudo que for gravado aparece junto ou não aparece.",
+    x: [{ id: "begin-fail", t: "Banco fora ou timeout → TRANSIENT_FAILURE", tone: "retry" }] },
+  inbox: { t: "Registra a mensagem na inbox", c: "INSERT … ON CONFLICT (consumer_name, message_id) DO NOTHING", d: "Se outra instância está gravando o mesmo messageId, este INSERT espera ela terminar para decidir.",
+    x: [{ id: "inbox-dup", t: "Já existia → duplicata: nada mais roda", tone: "ok" }] },
+  idem: { t: "Procura a Idempotency-Key", c: "findByIdempotencyKey() · sem lock", d: "Caminho rápido: um reenvio não precisa esperar o lock da carteira.",
+    x: [{ id: "idem-replay", t: "Achou, hash igual → replay", tone: "ok" }, { id: "idem-conflict", t: "Achou, hash diferente → IDEMPOTENCY_CONFLICT", tone: "bad" }] },
+  lock: { t: "Trava a carteira", c: "SELECT … FOR UPDATE", d: "Trava só a linha desta carteira. Outras carteiras seguem em paralelo; operações na mesma carteira esperam aqui.",
+    x: [{ id: "lock-missing", t: "Carteira não existe → WALLET_NOT_FOUND", tone: "bad" }] },
+  recheck: { t: "Procura a key de novo", c: "findByIdempotencyKey()", d: "Enquanto esperávamos o lock, uma cópia da mesma transação pode ter sido comitada.",
+    x: [{ id: "recheck-replay", t: "Comitada enquanto esperava → replay", tone: "ok" }] },
+  extid: { t: "Confere o id externo", c: "findByExternalId(providerId, externalTransactionId)", d: "Um <code>externalTransactionId</code> só pode existir com uma key.",
+    x: [{ id: "extid-used", t: "Já usado com outra key → IDEMPOTENCY_CONFLICT", tone: "bad" }] },
+  decide: { t: "Decide o resultado", c: "WagerTransactionProcessor.decide()", d: "O mesmo código do HTTP e do worker de pendências: jogador e moeda da carteira, referência (tipo, rodada, valor, já revertida?) e o débito ou crédito no saldo.",
+    x: [{ id: "decide-processed", t: "processed", tone: "ok" }, { id: "decide-rejected", t: "rejected (failureCode)", tone: "rej" }, { id: "decide-missing", t: "reference-missing", tone: "wait" }] },
+  persist: { t: "Grava transação, saldo e extrato", c: "INSERT wager_transactions · UPDATE wallets … WHERE version = ? · INSERT wallet_ledger_entries", d: "O saldo só é gravado se a <code>version</code> ainda for a lida. O lançamento guarda saldo antes e depois, e a tabela recusa UPDATE e DELETE.",
+    x: [{ id: "persist-race", t: "UNIQUE violado ou version mudou → rollback e nova tentativa (até 3)", tone: "retry" }] },
+  outbox: { t: "Enfileira os eventos", c: "processor.enqueue() → INSERT outbox_messages", d: "Os eventos viram linhas de uma tabela, na mesma transação. Ninguém publica nada ainda." },
+  inboxdone: { t: "Marca a mensagem como processada", c: "UPDATE inbox_messages SET processed_at" },
+  commit: { t: "COMMIT", c: "fim da transação", d: "Inbox, transação, saldo, lançamento e eventos passam a existir no mesmo instante." },
+  ack: { t: "Ack", c: "DeleteMessage", v: "ok", d: "Só depois do commit. Se a instância morrer antes, a mensagem volta e a inbox a reconhece." },
+  retry: { t: "Retry", c: "ChangeMessageVisibility 2ⁿ s", v: "retry", d: "Sem ack. A mensagem volta depois de 2 s, 4 s, 8 s… No 5º recebimento a redrive policy do SQS a move para a DLQ." },
+  dlq: { t: "DLQ", c: "SendMessage → wager-transactions-dlq.fifo + DeleteMessage", v: "bad", d: "Erro permanente que não gravou nada. Vai com o atributo <code>failureCode</code> e fica 14 dias para auditoria." },
+  publisher: { t: "Outbox publisher", c: "a cada 500 ms · lote 50 · FOR UPDATE SKIP LOCKED", v: "ok", d: "Publica em <code>wagering-events.fifo</code> com <code>MessageDeduplicationId = eventId</code>. Várias instâncias dividem o trabalho sem pegar a mesma linha. Entrega at-least-once." },
+  pending: { t: "Worker de pendências", c: "a cada 1 s · espera 2 s, 4 s … até 60 s", v: "wait", d: "Retoma as <code>PENDING_REFERENCE</code> com o mesmo <code>decide()</code>. Depois de 10 tentativas (cerca de 5 min): <code>REJECTED</code> com <code>REFERENCE_NOT_FOUND</code>." },
+};
+
+const ZONES = [
+  { label: "Fila de entrada", sub: "o provedor manda e segue a vida", nodes: ["queue"], rail: true },
+  { hop: "cada instância roda um consumer", label: "Consumer", sub: "WagerTransactionsConsumer", nodes: ["receive", "parse"], rail: true },
+  { hop: "executeFromMessage(dados, inbox)", label: "Use case", sub: "o mesmo do HTTP · validação em memória", nodes: ["prepare"], rail: true },
+  { hop: "uow.transactional()", label: "Uma transação SQL", sub: "tudo ou nada", nodes: ["begin", "inbox", "idem", "lock", "recheck", "extid", "decide", "persist", "outbox", "inboxdone", "commit"], rail: true, sql: true },
+  { hop: "resultado → veredito", label: "Veredito na fila", sub: "o consumer decide o que fazer com a mensagem", nodes: ["ack", "retry", "dlq"], grid: 3 },
+  { hop: "a fila já não participa", label: "Depois do commit", sub: "workers em todas as instâncias, lendo o banco", nodes: ["publisher", "pending"], grid: 2 },
+];
+
+const S = (n, t, x) => ({ n, t, x });
+const START = [
+  S("queue", "O provedor publica uma BET de <code>25.00 BRL</code> na carteira <code>4f1c…</code>, <code>messageId msg-123</code>."),
+  S("receive", "Uma das 3 instâncias recebe a mensagem. Ela fica invisível para as outras por 30 s."),
+  S("parse", "JSON ok. Inbox montada com <code>msg-123</code>."),
+  S("prepare", "Dados válidos. A transação nasce <code>PENDING</code> em memória."),
+  S("begin", "Abre a transação SQL."),
+];
+
+const SCENARIOS = [
+  {
+    id: "nova", label: "Aposta nova", tone: "ok", outcome: "PROCESSED · ack",
+    summary: "O caminho feliz: BET de 25.00 numa carteira com 100.00.",
+    steps: [
+      ...START,
+      S("inbox", "<code>msg-123</code> é nova: 1 linha inserida."),
+      S("idem", "Key <code>provider-a:transaction-123</code> nunca vista."),
+      S("lock", "Carteira travada. Saldo <code>100.00</code>, version 3."),
+      S("recheck", "Ninguém comitou a mesma key enquanto esperávamos."),
+      S("extid", "<code>transaction-123</code> está livre."),
+      S("decide", "Mesmo jogador e moeda, sem referência. Débito de 25.00.", "decide-processed"),
+      S("persist", "Transação <code>PROCESSED</code>, carteira em version 4, lançamento DEBIT <code>100.00 → 75.00</code>."),
+      S("outbox", "<code>WagerTransactionProcessed</code> e <code>WalletBalanceChanged</code>."),
+      S("inboxdone", "<code>msg-123</code> marcada como processada."),
+      S("commit", "Tudo fica visível de uma vez."),
+      S("ack", "Só agora a mensagem sai da fila."),
+      S("publisher", "Em até ~500 ms os 2 eventos chegam em <code>wagering-events.fifo</code>."),
+    ],
+  },
+  {
+    id: "reentrega", label: "Reentrega após queda", tone: "ok", outcome: "duplicata · ack",
+    summary: "A instância A comitou a BET mas morreu antes do DeleteMessage. A mensagem volta para a fila.",
+    steps: [
+      S("queue", "<code>msg-123</code> continua na fila: o ack nunca chegou."),
+      S("receive", "30 s depois ela volta a ficar visível e a instância B a recebe."),
+      S("parse", "Mesmo corpo, mesmo <code>msg-123</code>."),
+      S("prepare", "Dados válidos."),
+      S("begin", "Abre a transação SQL."),
+      S("inbox", "O INSERT encontra <code>(consumer, msg-123)</code> e não insere nada. É duplicata.", "inbox-dup"),
+      S("commit", "Commit sem nenhuma mudança: nenhum débito, nenhum evento."),
+      S("ack", "Ack. A métrica de duplicatas sobe com <code>source=inbox</code>."),
+    ],
+  },
+  {
+    id: "replay", label: "Mesma transação, outro messageId", tone: "ok", outcome: "replay · ack",
+    summary: "O provedor republicou a mesma BET com um messageId novo. A inbox não reconhece, mas a Idempotency-Key sim.",
+    steps: [
+      S("queue", "Chega <code>msg-124</code> com a mesma <code>idempotencyKey</code> e o mesmo conteúdo da <code>msg-123</code>."),
+      S("receive", "Uma instância recebe."),
+      S("parse", "Inbox montada com <code>msg-124</code>."),
+      S("prepare", "Dados válidos. O <code>payloadHash</code> é calculado sobre o conteúdo da transação."),
+      S("begin", "Abre a transação SQL."),
+      S("inbox", "<code>msg-124</code> é nova: 1 linha inserida."),
+      S("idem", "A key já existe e o hash bate. Devolve o resultado original, sem lock.", "idem-replay"),
+      S("inboxdone", "<code>msg-124</code> marcada como processada."),
+      S("commit", "Só a inbox muda. Saldo e extrato ficam como estavam."),
+      S("ack", "Ack. A métrica de duplicatas sobe com <code>source=idempotency_key</code>."),
+    ],
+  },
+  {
+    id: "conflito", label: "Mesma key, outro valor", tone: "bad", outcome: "IDEMPOTENCY_CONFLICT · DLQ",
+    summary: "Uma mensagem reaproveita a key de uma BET de 25.00, mas agora com 30.00.",
+    steps: [
+      S("queue", "Chega <code>msg-125</code> com a key <code>provider-a:transaction-123</code> e <code>amount 30.00</code>."),
+      S("receive", "Uma instância recebe."),
+      S("parse", "Inbox montada com <code>msg-125</code>."),
+      S("prepare", "Formato válido. O hash agora é diferente."),
+      S("begin", "Abre a transação SQL."),
+      S("inbox", "<code>msg-125</code> é nova."),
+      S("idem", "A key existe com outro hash. O sistema recusa em vez de adivinhar qual vale, e a transação faz rollback (nem a inbox fica gravada).", "idem-conflict"),
+      S("dlq", "Erro permanente: vai para a DLQ com <code>failureCode=IDEMPOTENCY_CONFLICT</code> e sai da fila principal."),
+    ],
+  },
+  {
+    id: "saldo", label: "Saldo insuficiente", tone: "rej", outcome: "REJECTED · ack",
+    summary: "BET de 80.00 numa carteira com 20.00. Rejeição é resultado de negócio: fica registrada.",
+    steps: [
+      ...START.map((s) => (s.n === "queue" ? S("queue", "O provedor publica uma BET de <code>80.00 BRL</code>, <code>msg-126</code>.") : s)),
+      S("inbox", "<code>msg-126</code> é nova."),
+      S("idem", "Key nova."),
+      S("lock", "Carteira travada. Saldo <code>20.00</code>."),
+      S("recheck", "Nada comitado enquanto esperava."),
+      S("extid", "Id externo livre."),
+      S("decide", "O débito falharia: <code>INSUFFICIENT_FUNDS</code>. Nada fica negativo.", "decide-rejected"),
+      S("persist", "Só a transação é gravada, como <code>REJECTED</code> e com o saldo do momento. Carteira e extrato não mudam."),
+      S("outbox", "<code>WagerTransactionRejected</code>."),
+      S("inboxdone", "Mensagem marcada como processada."),
+      S("commit", "A tentativa fica auditável."),
+      S("ack", "Ack. Tentar de novo daria o mesmo resultado."),
+      S("publisher", "Publica o evento de rejeição."),
+    ],
+  },
+  {
+    id: "fora-de-ordem", label: "REFUND antes da BET", tone: "wait", outcome: "PENDING_REFERENCE · ack",
+    summary: "O REFUND aponta para uma BET que ainda não chegou. A mensagem sai da fila e o banco passa a cuidar da espera.",
+    steps: [
+      S("queue", "Chega um REFUND de <code>25.00</code> com <code>referenceExternalTransactionId=transaction-123</code>."),
+      S("receive", "Uma instância recebe."),
+      S("parse", "Inbox montada."),
+      S("prepare", "Válido: REFUND exige referência, e ela veio."),
+      S("begin", "Abre a transação SQL."),
+      S("inbox", "Mensagem nova."),
+      S("idem", "Key nova."),
+      S("lock", "Carteira travada."),
+      S("recheck", "Nada comitado enquanto esperava."),
+      S("extid", "Id externo livre."),
+      S("decide", "A BET <code>transaction-123</code> não existe ainda.", "decide-missing"),
+      S("persist", "Gravada como <code>PENDING_REFERENCE</code>, próxima tentativa em 1 s. Saldo não muda."),
+      S("outbox", "<code>WagerTransactionPendingReference</code>."),
+      S("inboxdone", "Mensagem marcada como processada."),
+      S("commit", "A espera agora mora no banco, não na fila."),
+      S("ack", "Ack: segurar a mensagem na fila travaria o grupo FIFO da carteira."),
+      S("pending", "O worker tenta de novo com espera crescente. Quando a BET chega, aplica o REFUND e publica os eventos."),
+    ],
+  },
+  {
+    id: "invalida", label: "Valor inválido", tone: "bad", outcome: "INVALID_AMOUNT · DLQ",
+    summary: "A mensagem traz amount \"25.5\". Nada é aberto no banco.",
+    steps: [
+      S("queue", "Chega uma BET com <code>\"amount\": \"25.5\"</code>."),
+      S("receive", "Uma instância recebe."),
+      S("parse", "O JSON é válido e o type é o esperado."),
+      S("prepare", "<code>Money.from</code> recusa: precisa de exatamente 2 casas.", "prepare-bad"),
+      S("dlq", "Erro permanente: DLQ com <code>failureCode</code>. Nenhuma transação SQL foi aberta e a inbox não foi gravada."),
+    ],
+  },
+  {
+    id: "banco", label: "Banco fora do ar", tone: "retry", outcome: "retry · DLQ no 5º recebimento",
+    summary: "O PostgreSQL não responde. A mensagem não pode sumir, então fica na fila e volta depois.",
+    steps: [
+      S("queue", "Uma BET qualquer."),
+      S("receive", "Recebida (1º recebimento)."),
+      S("parse", "Inbox montada."),
+      S("prepare", "Dados válidos."),
+      S("begin", "A conexão falha. Nada foi gravado.", "begin-fail"),
+      S("retry", "Sem ack. Visibilidade de 2 s; depois 4 s, 8 s, 16 s a cada novo recebimento. Se o banco voltar, a mensagem segue o caminho normal."),
+      S("dlq", "Se continuar falhando, no 5º recebimento a redrive policy do SQS a move para a DLQ."),
+    ],
+  },
+  {
+    id: "corrida", label: "Duas instâncias, mesma aposta", tone: "ok", outcome: "um débito só",
+    summary: "As instâncias A e B recebem ao mesmo tempo duas mensagens diferentes com a mesma transação.",
+    steps: [
+      S("queue", "<code>msg-200</code> e <code>msg-201</code> carregam a mesma key e o mesmo conteúdo."),
+      S("receive", "A recebe <code>msg-200</code>; B recebe <code>msg-201</code>."),
+      S("parse", "Cada uma monta sua inbox."),
+      S("prepare", "As duas são válidas."),
+      S("begin", "Duas transações SQL em paralelo."),
+      S("inbox", "Ids diferentes: as duas inserem."),
+      S("idem", "Nenhuma das duas acha a key ainda."),
+      S("lock", "A trava a carteira. B fica esperando nesse mesmo ponto."),
+      S("decide", "A debita 25.00.", "decide-processed"),
+      S("persist", "A grava transação, saldo e lançamento."),
+      S("outbox", "A enfileira os eventos."),
+      S("commit", "A comita e libera o lock."),
+      S("recheck", "B ganha o lock e relê a key: a transação de A já está lá. B responde como replay.", "recheck-replay"),
+      S("inboxdone", "B marca <code>msg-201</code> como processada."),
+      S("ack", "As duas mensagens recebem ack. Saldo debitado uma vez só."),
+    ],
+  },
+];
+
+const $ = (sel, root = document) => root.querySelector(sel);
+const el = (tag, cls, html) => {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (html !== undefined) node.innerHTML = html;
+  return node;
+};
+const exitTone = {};
+
+const flow = $("#flow");
+for (const zone of ZONES) {
+  if (zone.hop) flow.append(el("div", "hop", `<span>${zone.hop}</span>`));
+  const box = el("section", `zone${zone.sql ? " sql" : ""}`);
+  box.dataset.nodes = zone.nodes.join(" ");
+  const head = el("div", "zone-head", `<h2>${zone.label}</h2><span class="sub">${zone.sub}</span>`);
+  if (zone.sql) head.append(el("span", "sql-tag", "BEGIN … COMMIT"));
+  box.append(head);
+  const list = el("div", zone.rail ? "rail" : `grid${zone.grid}`);
+  for (const id of zone.nodes) {
+    const def = NODES[id];
+    const node = el("div", `node${def.v ? ` v-${def.v}` : ""}`);
+    node.id = `node-${id}`;
+    node.append(el("span", "badge"), el("div", "node-title", def.t), el("div", "node-code", def.c));
+    if (def.d) node.append(el("p", "node-desc", def.d));
+    if (def.x) {
+      const exits = el("div", "exits");
+      for (const x of def.x) {
+        exitTone[x.id] = x.tone;
+        const chip = el("span", `exit t-${x.tone}`, x.t);
+        chip.id = `exit-${x.id}`;
+        exits.append(chip);
+      }
+      node.append(exits);
+    }
+    list.append(node);
+  }
+  box.append(list);
+  flow.append(box);
+}
+
+const chips = $("#chips");
+for (const scn of SCENARIOS) {
+  const chip = el("button", `chip t-${scn.tone}`, `<span class="dot"></span>${scn.label}`);
+  chip.type = "button";
+  chip.id = `chip-${scn.id}`;
+  chip.setAttribute("aria-pressed", "false");
+  chip.addEventListener("click", () => select(scn.id));
+  chips.append(chip);
+}
+
+const panel = $("#panel");
+let current = null;
+let timer = null;
+
+function stopPlay() {
+  if (timer) clearInterval(timer);
+  timer = null;
+}
+
+function reveal(upTo) {
+  const scn = current;
+  const firstIndex = {};
+  scn.steps.forEach((step, i) => { if (!(step.n in firstIndex)) firstIndex[step.n] = i; });
+  for (const [id, i] of Object.entries(firstIndex)) {
+    $(`#node-${id}`).classList.toggle("later", i > upTo);
+  }
+  panel.querySelectorAll(".step").forEach((li, i) => {
+    li.classList.toggle("hidden", i > upTo);
+    li.classList.toggle("active", timer !== null && i === upTo);
+  });
+}
+
+function play() {
+  stopPlay();
+  let k = 0;
+  timer = setInterval(() => {
+    k += 1;
+    if (k >= current.steps.length) {
+      stopPlay();
+      reveal(Infinity);
+      return;
+    }
+    reveal(k);
+    const node = $(`#node-${current.steps[k].n}`);
+    if (window.matchMedia("(min-width: 921px)").matches) node.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }, 1100);
+  reveal(0);
+}
+
+function select(id) {
+  stopPlay();
+  current = SCENARIOS.find((s) => s.id === id) || SCENARIOS[0];
+  try { localStorage.setItem("caminho-sqs:cenario", current.id); } catch {}
+  document.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c.id === `chip-${current.id}`)));
+
+  flow.classList.add("has-scn");
+  document.querySelectorAll(".node").forEach((n) => { n.classList.remove("on", "later", "focus"); n.querySelector(".badge").textContent = ""; });
+  document.querySelectorAll(".exit").forEach((x) => x.classList.remove("hit"));
+
+  const numbers = {};
+  current.steps.forEach((step, i) => {
+    (numbers[step.n] ||= []).push(i + 1);
+    if (step.x) $(`#exit-${step.x}`).classList.add("hit");
+  });
+  for (const [id, nums] of Object.entries(numbers)) {
+    const node = $(`#node-${id}`);
+    node.classList.add("on");
+    node.querySelector(".badge").textContent = nums.join(" · ");
+  }
+  document.querySelectorAll(".zone").forEach((z) => {
+    z.classList.toggle("on", z.dataset.nodes.split(" ").some((n) => n in numbers));
+  });
+
+  panel.innerHTML = "";
+  panel.append(
+    el("div", "eyebrow", "Cenário"),
+    el("h3", "", current.label),
+    el("p", "summary", current.summary),
+    el("div", `outcome t-${current.tone}`, current.outcome),
+  );
+  const controls = el("div", "controls");
+  const playBtn = el("button", "btn", "Reproduzir passo a passo");
+  playBtn.type = "button";
+  playBtn.addEventListener("click", play);
+  const allBtn = el("button", "btn ghost", "Mostrar tudo");
+  allBtn.type = "button";
+  allBtn.addEventListener("click", () => { stopPlay(); reveal(Infinity); });
+  controls.append(playBtn, allBtn);
+  panel.append(controls);
+
+  const ol = el("ol", "steps");
+  current.steps.forEach((step, i) => {
+    const li = el("li", `step${step.x ? ` exit-step t-${exitTone[step.x]}` : ""}`);
+    li.tabIndex = 0;
+    li.append(el("span", "n", String(i + 1)), el("span", "where", NODES[step.n].t), el("span", "what", step.t));
+    const node = $(`#node-${step.n}`);
+    const focusOn = () => node.classList.add("focus");
+    const focusOff = () => node.classList.remove("focus");
+    li.addEventListener("mouseenter", focusOn);
+    li.addEventListener("mouseleave", focusOff);
+    li.addEventListener("focus", focusOn);
+    li.addEventListener("blur", focusOff);
+    li.addEventListener("click", () => node.scrollIntoView({ block: "center", behavior: "smooth" }));
+    ol.append(li);
+  });
+  panel.append(ol);
+  reveal(Infinity);
+}
+
+let initial = location.hash.slice(1);
+if (!SCENARIOS.some((s) => s.id === initial)) {
+  try { initial = localStorage.getItem("caminho-sqs:cenario") || ""; } catch { initial = ""; }
+}
+select(initial || "nova");
+</script>
+</html>

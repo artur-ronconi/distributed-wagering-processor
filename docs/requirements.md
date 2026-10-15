@@ -72,6 +72,8 @@ Callers are **game providers** (and the casino backend for wallet creation), nev
 | `GET`  | `/wallets/:walletId` | Wallet and materialized balance | no | @docs/routes/get-wallet.md |
 | `GET`  | `/wallets/:walletId/ledger?cursor=...&limit=50` | Ledger, keyset pagination, stable opaque cursor | no | @docs/routes/get-wallet-ledger.md |
 | `POST` | `/wallets/:walletId/reconciliation` | Stored balance vs ledger; divergences logged + metric, never auto-fixed | no | @docs/routes/reconcile-wallet.md |
+| `POST` | `/wallets/:walletId/deposits` | **Extension.** Deposit (internal `DEPOSIT`, credit); header `Idempotency-Key` required, scoped to the wallet | no | @docs/routes/deposit-to-wallet.md |
+| `POST` | `/wallets/:walletId/withdrawals` | **Extension.** Withdrawal (internal `WITHDRAWAL`, debit, never below zero); header `Idempotency-Key` required | no | @docs/routes/withdraw-from-wallet.md |
 | `POST` | `/wagering/transactions` | Submit BET/WIN/LOSS/REFUND/ROLLBACK (header `Idempotency-Key` required) | **yes** | @docs/routes/submit-wager-transaction.md |
 | `GET`  | `/wagering/transactions/:transactionId` | Transaction by internal id | no | @docs/routes/get-wager-transaction.md |
 | `GET`  | `/providers/:providerId/wagering/transactions/:externalTransactionId` | Transaction by provider id | no | @docs/routes/get-provider-wager-transaction.md |
@@ -92,7 +94,7 @@ Callers are **game providers** (and the casino backend for wallet creation), nev
 | Transient infrastructure failure | `503` + `Retry-After` |
 | Unexpected error | `500` (`INTERNAL_ERROR`) |
 
-- Error body: `{ "code": "<FailureCode>", "message": "...", "correlationId": "..." }`. Exception: `POST /wagering/transactions` with `REJECTED` returns the transaction result (with `failureCode`).
+- Error body: `{ "code": "<FailureCode>", "message": "...", "correlationId": "..." }`. Exception: `POST /wagering/transactions`, `/deposits` and `/withdrawals` with `REJECTED` return the transaction result (with `failureCode`).
 - Submit result body: `{ transactionId, status, balance, failureCode, idempotentReplay }`. `balance` is the balance **observed when the transaction was decided** (replay returns the old one); `null` while `PENDING_REFERENCE`.
 - Headers: `Idempotency-Key` (required on submit), `X-Correlation-Id` (optional in, always echoed out), `Retry-After` (on `503`), `Authorization` (if auth is implemented).
 - Validation split: DTOs (class-validator) check **shape**; the domain checks **content** (money format, kinds, references). The SQS consumer gets the same content validation.
@@ -200,6 +202,10 @@ The app runs TypeScript directly on Bun, so the `@nestjs/swagger` CLI compiler p
 | `LOSS`     | none                 | none                | Records the result without moving balance (amount may be `0.00`) |
 | `REFUND`   | credit               | 1 `CREDIT`          | Reverts a `PROCESSED` `BET`, only once |
 | `ROLLBACK` | inverse of reference | 1 inverted entry    | Reverts a `PROCESSED` `BET`, `WIN` or `REFUND`, only once |
+| `DEPOSIT`    | credit             | 1 `CREDIT`          | **Extension.** Internal (`POST /wallets/:walletId/deposits`); positive amount, wallet currency |
+| `WITHDRAWAL` | debit              | 1 `DEBIT`           | **Extension.** Internal (`POST /wallets/:walletId/withdrawals`); rejected with `INSUFFICIENT_FUNDS` if the balance does not cover it |
+
+Internal kinds (`OPENING`, `DEPOSIT`, `WITHDRAWAL`) are never accepted from a provider (API or queue): `400 INVALID_PAYLOAD`, and the database only allows them with `provider_id = 'internal'`.
 
 ## Rules
 1. `REFUND` and `ROLLBACK` require `referenceExternalTransactionId`.
@@ -327,7 +333,7 @@ OutboxMessageAggregate (messaging)
 - Separate liveness and readiness health checks.
 
 # Documentation deliverables (OLD_README §14)
-- `README.md` (the project's, to be written) with setup and commands, including the Swagger URL.
+- `README.md` (the project's) with setup and commands, including the Swagger URL.
 - `ARCHITECTURE.md` with decisions, trade-offs and limitations: ORM choice, `Money` mapping, transaction and concurrency strategy, two aggregates in one transaction, `failureCode` taxonomy, HTTP status mapping, `payloadHash` algorithm, inbox × idempotency key overlap, pending-reference retry limit, outbox lock vs lease, authentication decision, and every item in "Design decisions" below.
 - Swagger / OpenAPI at `/docs` (see "API documentation (Swagger)").
 
@@ -346,6 +352,7 @@ OutboxMessageAggregate (messaging)
 | Reconciliation always `200`, `REPEATABLE READ` read-only | @docs/routes/reconcile-wallet.md |
 | SQS permanent errors that persist nothing go to the DLQ | @docs/routes/submit-wager-transaction.md |
 | `/health/ready` returns `503` after `SIGTERM` | @docs/routes/health.md |
+| Deposits and withdrawals are internal wager transactions (`DEPOSIT`, `WITHDRAWAL`) decided by the shared processor; the client key is scoped to the wallet | @docs/routes/deposit-to-wallet.md |
 
 # Pending verification
 - MikroORM snippets in @docs/files-patterns/ (`EntitySchema`, `em.insert`, `nativeUpdate`, `LockMode`, `em.transactional` options `isolationLevel`/`readOnly`) were written from memory: check them against the installed version.
