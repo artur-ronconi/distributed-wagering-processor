@@ -2,7 +2,7 @@ import { DateValueObject, type IBaseDomainAggregate, IdValueObject } from "ddd-t
 
 import { FailureCode } from "../../../../../shared/domain/failure-code";
 import { MoneyValueObject } from "../../../../wallet/domain/aggregate/value-objects/money/money.value-object";
-import { WagerTransactionKind, WagerTransactionStatus } from "./wager-transaction.enums";
+import { WagerTransactionKind, WagerTransactionStatus, type WalletOperationKind } from "./wager-transaction.enums";
 
 interface IWagerTransactionProps extends IBaseDomainAggregate {
   providerId: string;
@@ -50,4 +50,15 @@ interface ICreateOpeningProps {
   payloadHash: string;
 }
 
-export { type IWagerTransactionProps, type ICreateWagerTransactionProps, type ICreateOpeningProps };
+/** Deposit or withdrawal requested for one wallet. The client's Idempotency-Key is scoped to the wallet. */
+interface ICreateWalletOperationProps {
+  kind: WalletOperationKind;
+  walletId: IdValueObject;
+  playerId: string;
+  money: MoneyValueObject;
+  /** The client's Idempotency-Key, as received. */
+  clientIdempotencyKey: string;
+  payloadHash: string;
+}
+
+export { type IWagerTransactionProps, type ICreateWagerTransactionProps, type ICreateOpeningProps, type ICreateWalletOperationProps };

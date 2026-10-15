@@ -3,10 +3,10 @@ import { Type } from "class-transformer";
 import { IsDefined, IsObject, IsOptional, IsString, MaxLength, ValidateNested } from "class-validator";
 
 import { FailureCode } from "../../../../../shared/domain/failure-code";
-import { WagerTransactionKind, WagerTransactionStatus } from "../../../domain/aggregate/aggregate-root/wager-transaction.enums";
+import { PROVIDER_KINDS, WagerTransactionKind, WagerTransactionStatus } from "../../../domain/aggregate/aggregate-root/wager-transaction.enums";
 import { MoneyDto, MoneyResponseDto } from "../../../../wallet/presentation/controllers/dtos/money.dto";
 
-const SUBMITTABLE_KINDS = Object.values(WagerTransactionKind).filter((kind) => kind !== WagerTransactionKind.Opening);
+const SUBMITTABLE_KINDS = [...PROVIDER_KINDS];
 
 class SubmitWagerTransactionRequestDto {
   @ApiProperty({ description: "Game provider id", example: "provider-a", maxLength: 128 })
@@ -43,7 +43,7 @@ class SubmitWagerTransactionRequestDto {
   gameId!: string;
 
   @ApiProperty({
-    description: "BET debits, WIN credits, LOSS records without moving money, REFUND credits back a BET, ROLLBACK inverts a BET, WIN or REFUND. OPENING is internal and refused.",
+    description: "BET debits, WIN credits, LOSS records without moving money, REFUND credits back a BET, ROLLBACK inverts a BET, WIN or REFUND. OPENING, DEPOSIT and WITHDRAWAL are internal and refused.",
     enum: SUBMITTABLE_KINDS,
     enumName: "SubmittableWagerTransactionKind",
     example: WagerTransactionKind.Bet,
