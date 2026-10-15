@@ -4,7 +4,7 @@ Desafio técnico da **Jungle Gaming**: **Distributed Wagering Processor**. Um se
 
 **O `OLD_README.md` é a fonte da verdade** (é o enunciado do desafio). Se este arquivo ou qualquer arquivo em `docs/` contradisser o OLD_README, vale o OLD_README.
 
-O `README.md` é um **entregável** do projeto (setup e comandos, OLD_README §14), ainda a ser escrito. Não confunda os dois.
+O `README.md` é um **entregável** do projeto (setup e comandos, OLD_README §14), com prints em `docs/imagens/`. Não confunda os dois.
 
 Resumo de tudo que precisa ser feito: `docs/requirements.md`.
 
@@ -14,7 +14,7 @@ Correção financeira (20), concorrência (20), idempotência (15), mensageria e
 
 ## Estrutura
 
-Um único serviço NestJS (não é monorepo, não tem frontend).
+Um único serviço NestJS (não é monorepo). Em `frontends/` há duas ferramentas de apoio fora do `src/`: `wallet-console` (usa a API pública) e `flow-explorer` (anima o caminho de cada requisição).
 
 ```
 src/
@@ -32,7 +32,8 @@ test/
   unit/             → domínio puro
   integration/      → PostgreSQL e LocalStack reais em containers
   concurrency/      → paralelismo real, ≥ 3 instâncias
-docs/               → requirements.md, domain/, routes/, files-patterns/
+frontends/          → wallet-console (:4001) e flow-explorer (:4000), servidos por Bun
+docs/               → requirements.md, domain/, routes/, files-patterns/, imagens/ (prints do README)
 OLD_README.md       → enunciado do desafio (fonte da verdade)
 README.md           → README do projeto: setup, comandos e mapa de testes
 ARCHITECTURE.md     → decisões, trade-offs e limitações
@@ -49,6 +50,8 @@ Regras da estrutura:
 bun install
 bun run start                 # PostgreSQL + LocalStack (SQS) + app em segundo plano, espera tudo ficar saudável
 bun run destroy               # para tudo e apaga containers, volume do banco, filas e imagem da app
+bun run console               # Wallet Console em :4001 (requer o backend)
+bun run explorer              # Flow Explorer em :4000 (requer o backend)
 bun run dev                   # app com watch
 bun run migration:up          # aplica migrations
 bun run migration:down        # reverte (migrations precisam ser reversíveis)
