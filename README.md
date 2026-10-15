@@ -13,7 +13,7 @@
 ![MikroORM 6](https://img.shields.io/badge/MikroORM-6-2B6CB0)
 ![AWS SQS](https://img.shields.io/badge/AWS%20SQS-LocalStack-FF9900?logo=amazonsqs&logoColor=white)
 ![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
-![209 testes](https://img.shields.io/badge/testes-209%20passando-10B981)
+![245 testes](https://img.shields.io/badge/testes-245%20passando-10B981)
 
 [Em 1 minuto](#em-1-minuto) ·
 [O projeto em imagens](#o-projeto-em-imagens) ·
@@ -26,9 +26,9 @@
 
 <br>
 
-Desafio técnico da **Jungle Gaming**. Provedores de jogos enviam transações de aposta (`BET`, `WIN`, `LOSS`, `REFUND`, `ROLLBACK`) por **HTTP** ou por **fila SQS**. O serviço aplica cada uma na carteira certa, mantém um **extrato imutável** e garante que nenhum dinheiro seja debitado duas vezes, criado do nada ou deixado negativo, mesmo com várias instâncias processando ao mesmo tempo.
+Desafio técnico da **Jungle Gaming**. Provedores de jogos enviam transações de aposta (`BET`, `WIN`, `LOSS`, `REFUND`, `ROLLBACK`) por **HTTP** ou por **fila SQS**. O serviço aplica cada uma na carteira certa, mantém um **extrato imutável** e garante que nenhum dinheiro seja debitado duas vezes, criado do nada ou deixado negativo, mesmo com várias instâncias processando ao mesmo tempo. Como extensão, a carteira também aceita **depósito** e **saque** pelo caixa, com as mesmas garantias.
 
-| 209 | 50× | 3 | 0 | 5s | 2 |
+| 245 | 50× | 3 | 0 | 5s | 2 |
 | :---: | :---: | :---: | :---: | :---: | :---: |
 | testes automatizados passando | a mesma aposta em paralelo vira **um** débito | instâncias do serviço disputando a mesma carteira nos testes | mocks de PostgreSQL ou SQS | de espera máxima pelo lock de uma carteira, depois `503` | frontends para usar e para ver o sistema por dentro |
 
@@ -39,7 +39,7 @@ Desafio técnico da **Jungle Gaming**. Provedores de jogos enviam transações d
 
 **Distributed Wagering Processor** is a financial service (NestJS on Bun, strict TypeScript, PostgreSQL with MikroORM, AWS SQS on LocalStack) that applies wager transactions sent by game providers over HTTP or an SQS FIFO queue. It keeps wallet balances and an append-only ledger correct under duplicated, out-of-order and concurrent messages, across multiple instances.
 
-Highlights: money as exact integer cents (never floating point); a per-wallet row lock plus version-checked updates (no global lock); persistent idempotency keys with payload hashing (same key + different payload is a 409, not a replay); an inbox in the same SQL transaction as the money change and acks only after commit; a transactional outbox published with `FOR UPDATE SKIP LOCKED`; out-of-order references parked as `PENDING_REFERENCE` and retried with exponential backoff; database constraints and triggers that enforce the invariants on their own. 209 tests run against real PostgreSQL and LocalStack containers, including three real service processes competing for the same wallet and a `SIGKILL` between commit and ack.
+Highlights: money as exact integer cents (never floating point); a per-wallet row lock plus version-checked updates (no global lock); persistent idempotency keys with payload hashing (same key + different payload is a 409, not a replay); an inbox in the same SQL transaction as the money change and acks only after commit; a transactional outbox published with `FOR UPDATE SKIP LOCKED`; out-of-order references parked as `PENDING_REFERENCE` and retried with exponential backoff; database constraints and triggers that enforce the invariants on their own. 245 tests run against real PostgreSQL and LocalStack containers, including three real service processes competing for the same wallet and a `SIGKILL` between commit and ack.
 
 Two companion frontends ship with it: the **Wallet Console**, to use the system as an operator, and the **Flow Explorer**, which animates the path each request takes through the code. The rest of this README is in Portuguese.
 
@@ -60,7 +60,7 @@ bun run destroy    # para tudo e apaga containers, banco, filas e a imagem da ap
 
 | Parte | Para que serve | Onde |
 |---|---|---|
-| **Backend** | A API e os workers: aplica as transações, guarda saldo e extrato, consome a fila e publica eventos | http://localhost:3000 · [Swagger](http://localhost:3000/docs) |
+| **Backend** | A API e os workers: aplica as transações, depósitos e saques, guarda saldo e extrato, consome a fila e publica eventos | http://localhost:3000 · [Swagger](http://localhost:3000/docs) |
 | **Wallet Console** | **Usar** o sistema como um operador de cassino: criar carteiras, apostar, ganhar, perder, reembolsar, estornar e provocar cada regra de negócio | http://localhost:4001 |
 | **Flow Explorer** | **Ver por dentro**: executa uma rota e anima, passo a passo, o caminho que ela fez no código, com o SQL, os locks e a fila | http://localhost:4000 |
 
@@ -194,7 +194,9 @@ Os pontos mais importantes, com o caminho para ler o código. A justificativa co
 
 **7. O banco garante as invariantes sozinho.** Na [migration](src/shared/infrastructure/database/migrations/Migration20261014120000InitialSchema.ts): saldo `>= 0`, lançamento que fecha a conta (`antes ± valor = depois`), uma carteira por jogador e moeda, uma reversão por aposta (índice único parcial) e um **trigger** que recusa `UPDATE` e `DELETE` no extrato.
 
-**8. DDD com fronteiras explícitas.** Três módulos (`wallet`, `wager-transaction`, `messaging`), aggregates com factories (`create`, `rehydrate`), entidades imutáveis e o domínio sem nenhum import do NestJS ou do ORM.
+**8. Depósito e saque sem um segundo caminho para o dinheiro.** `POST /wallets/:walletId/deposits` e `/withdrawals` (extensão, fora do enunciado) gravam transações internas `DEPOSIT` e `WITHDRAWAL`, decididas pelo mesmo `processor.decide()`. Herdam a idempotência (key com escopo na carteira), o lock, o extrato, a outbox e a reconciliação; um saque maior que o saldo é `422 INSUFFICIENT_FUNDS`, gravado e auditável. Provedores não conseguem criar essas operações, nem pela API nem direto no banco. Ver [`move-wallet-funds.usecase.ts`](src/modules/wallet/domain/usecases/move-wallet-funds/move-wallet-funds.usecase.ts) e a [seção 14 do ARCHITECTURE.md](ARCHITECTURE.md#14-depósito-e-saque-extensão).
+
+**9. DDD com fronteiras explícitas.** Três módulos (`wallet`, `wager-transaction`, `messaging`), aggregates com factories (`create`, `rehydrate`), entidades imutáveis e o domínio sem nenhum import do NestJS ou do ORM.
 
 <details>
 <summary><b>Status HTTP de <code>POST /wagering/transactions</code></b></summary>
@@ -262,6 +264,12 @@ curl -s -X POST localhost:3000/wagering/transactions -H 'content-type: applicati
   -d '{"providerId":"provider-a","externalTransactionId":"transaction-123","playerId":"0192f28f-5dc0-7d58-bdb2-814ad6a0f4a1",
        "walletId":"<walletId>","roundId":"round-987","gameId":"fortune-chimp","kind":"BET","money":{"amount":"25.00","currency":"BRL"}}'
 
+# depósito e saque pelo caixa (Idempotency-Key obrigatória, com escopo na carteira)
+curl -s -X POST localhost:3000/wallets/<walletId>/deposits -H 'content-type: application/json' \
+  -H 'Idempotency-Key: cashier:deposit-1' -d '{"money":{"amount":"50.00","currency":"BRL"}}'
+curl -s -X POST localhost:3000/wallets/<walletId>/withdrawals -H 'content-type: application/json' \
+  -H 'Idempotency-Key: cashier:withdrawal-1' -d '{"money":{"amount":"30.00","currency":"BRL"}}'
+
 # extrato e reconciliação
 curl -s localhost:3000/wallets/<walletId>/ledger
 curl -s -X POST localhost:3000/wallets/<walletId>/reconciliation
@@ -311,8 +319,8 @@ Integração e concorrência rodam contra **PostgreSQL e LocalStack reais** (os 
 ```bash
 bun run start               # ou só a infra: docker compose up -d postgres localstack --wait
 
-bun test                    # 100 unitários: domínio e eventos
-bun run test:integration    # 102 de integração: API, persistência, mensageria, Swagger e health
+bun test                    # 108 unitários: domínio e eventos
+bun run test:integration    # 130 de integração: API, depósito e saque, persistência, mensageria, Swagger e health
 bun run test:concurrency    # 7 de concorrência: paralelismo real, 3 processos, SIGKILL + restart
 bun run test:all            # os três
 bun run typecheck
@@ -336,6 +344,7 @@ bun run typecheck
 | Reinício com consistência final | `concurrency.spec.ts` (5/8) |
 | Invariante final `wallet.balance == ledger` | `expectLedgerMatchesBalances` em todos os testes que movem dinheiro |
 | Swagger completo (todas as rotas e status, com exemplos) | [`test/integration/docs/swagger.spec.ts`](test/integration/docs/swagger.spec.ts) |
+| Depósito e saque (extensão): replay, conflito, saldo insuficiente, saques paralelos | [`test/integration/api/wallet-operations.spec.ts`](test/integration/api/wallet-operations.spec.ts) |
 
 ## Estrutura
 

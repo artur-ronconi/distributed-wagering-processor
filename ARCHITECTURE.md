@@ -186,7 +186,32 @@ Detalhes de SQS FIFO que os testes revelaram e que estão documentados no códig
 - Abortar um long poll do lado do cliente pode "prender" a próxima mensagem (seção 9).
 - Os testes drenam as filas (receive + delete) em vez de usar `PurgeQueue`, que, segundo a documentação da AWS, pode apagar também mensagens enviadas durante a limpeza.
 
-## 14. Limitações e próximos passos
+## 14. Depósito e saque (extensão)
+
+`POST /wallets/:walletId/deposits` e `POST /wallets/:walletId/withdrawals` **não estão no enunciado**: foram pedidos depois, como operações de caixa. Detalhes em [`docs/routes/deposit-to-wallet.md`](docs/routes/deposit-to-wallet.md) e [`docs/routes/withdraw-from-wallet.md`](docs/routes/withdraw-from-wallet.md).
+
+**Decisão: são `wager_transactions` de dois kinds internos, `DEPOSIT` e `WITHDRAWAL`**, criados só por este serviço (provedor `internal`), como já acontecia com `OPENING`. A factory é `WagerTransactionAggregate.createWalletOperation`, e a decisão é do mesmo `processor.decide()` das apostas.
+
+Por quê:
+
+- O lançamento do extrato tem FK obrigatória para `wager_transactions` (`transaction_id`). Uma tabela própria de operações exigiria uma FK polimórfica ou duas colunas opcionais no ledger, e a reconciliação, a consulta por id e a outbox teriam um segundo caminho.
+- Reutilizando, as duas rotas herdam **sem código novo** tudo o que já estava testado: idempotência persistente (`UNIQUE` + `payloadHash` + replay com o saldo observado), lock da carteira + `UPDATE` por `version`, saldo nunca negativo (`wallet.debit` → `INSUFFICIENT_FUNDS` gravado e auditável), lançamento no extrato, eventos na outbox na mesma transação e reconciliação.
+- Uma única regra de decisão para todas as entradas que movem dinheiro.
+
+**Idempotência com escopo na carteira.** A `Idempotency-Key` do cliente é guardada como `internal:{walletId}:{key}`. Assim ela não colide com as keys dos provedores nem entre carteiras (é comum um sistema de caixa numerar por conta), e reusar a key de um depósito num saque da mesma carteira é `409` (o `payloadHash` inclui a operação).
+
+**Provedores não criam operações internas.** O `create` dos provedores só aceita `PROVIDER_KINDS` (`BET`, `WIN`, `LOSS`, `REFUND`, `ROLLBACK`): `OPENING`, `DEPOSIT` e `WITHDRAWAL` respondem `400` pela API e vão para a DLQ pela fila. O banco reforça com a constraint `wager_tx_internal_kinds_internal_provider`.
+
+**Só HTTP.** Depósito e saque são operações de caixa, síncronas: quem chama precisa da resposta na hora. A fila continua sendo só a porta dos provedores.
+
+Trade-offs:
+
+- Os eventos continuam se chamando `WagerTransactionProcessed`/`Rejected` também para depósito e saque; o consumidor distingue pelo `kind`. Eventos próprios (`WalletDeposited`, `WalletWithdrawn`) seriam mais expressivos e ficam para quando existir um consumidor que precise deles.
+- `roundId` e `gameId` são obrigatórios na tabela e recebem valores fixos (`wallet-operation`, `wallet`).
+- O `down` da migration recoloca o CHECK antigo como `NOT VALID`: depósitos e saques já gravados (e seus lançamentos, que são imutáveis) continuam lá, e só linhas novas são verificadas. Reverter nunca apaga histórico de dinheiro.
+- Num sistema real, sacar dinheiro exigiria uma autorização mais forte que a de um provedor (papel de back-office, limites, antifraude). Aqui vale o mesmo `AuthGuard` no-op da seção 12.
+
+## 15. Limitações e próximos passos
 
 - **Teste de carga** (`bun run test:load`, diferencial) ainda não implementado.
 - **Lock da outbox durante a publicação** (seção 8). Lease seria o próximo passo se o lag crescer.

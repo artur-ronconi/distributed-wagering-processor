@@ -25,7 +25,8 @@ Uma carteira pode ter milhares de lançamentos, e carregar o extrato inteiro par
 - A moeda da operação é igual à moeda da wallet. Se não for, devolve `CURRENCY_MISMATCH`.
 - `version` começa em **1** depois de `open` (mesmo com saldo inicial) e **só sobe quando o saldo muda**.
 - Toda alteração de saldo adiciona um lançamento ao aggregate. Saldo e lançamento são salvos na mesma transação.
-- Débito sem saldo: `INSUFFICIENT_FUNDS` para aposta. O use case passa `REVERSAL_WOULD_OVERDRAW` quando o débito é um estorno (OLD_README §7, regra 9).
+- Débito sem saldo: `INSUFFICIENT_FUNDS` para aposta e para saque. O use case passa `REVERSAL_WOULD_OVERDRAW` quando o débito é um estorno (OLD_README §7, regra 9).
+- Depósito e saque (extensão: @docs/routes/deposit-to-wallet.md e @docs/routes/withdraw-from-wallet.md) não têm método próprio: são `credit` e `debit` chamados pelo mesmo `processor.decide()` das apostas, a partir de uma `WagerTransaction` interna de kind `DEPOSIT` ou `WITHDRAWAL`.
 
 ## wallet.props.ts
 ```ts

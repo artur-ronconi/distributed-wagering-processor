@@ -10,12 +10,16 @@ OLD_README §9. O `OLD_README.md` é a fonte da verdade. Domínio em @docs/domai
 | `GET` | `/wallets/:walletId` | @docs/routes/get-wallet.md | sim* |
 | `GET` | `/wallets/:walletId/ledger` | @docs/routes/get-wallet-ledger.md | sim* |
 | `POST` | `/wallets/:walletId/reconciliation` | @docs/routes/reconcile-wallet.md | sim* |
+| `POST` | `/wallets/:walletId/deposits` (extensão) | @docs/routes/deposit-to-wallet.md | sim* |
+| `POST` | `/wallets/:walletId/withdrawals` (extensão) | @docs/routes/withdraw-from-wallet.md | sim* |
 | `POST` | `/wagering/transactions` | @docs/routes/submit-wager-transaction.md | sim* |
 | `GET` | `/wagering/transactions/:transactionId` | @docs/routes/get-wager-transaction.md | sim* |
 | `GET` | `/providers/:providerId/wagering/transactions/:externalTransactionId` | @docs/routes/get-provider-wager-transaction.md | sim* |
 | `GET` | `/health/live` e `/health/ready` | @docs/routes/health.md | **nunca** |
 
 \* A autenticação fica a critério do candidato (OLD_README §2). Todas essas rotas passam por um `AuthGuard`. Se a decisão for não implementar, o guard é no-op e a decisão vai para o `ARCHITECTURE.md`. Os health checks ficam sempre fora do guard.
+
+As rotas marcadas como **extensão** não estão no OLD_README: depósito e saque foram pedidos depois, como operações de caixa. Elas reutilizam a mesma transação, o mesmo lock, o mesmo extrato e a mesma outbox das apostas (decisão no `ARCHITECTURE.md`, seção 14).
 
 ## Quem chama esta API
 
@@ -99,7 +103,7 @@ Toda resposta de erro tem o mesmo corpo:
 ```
 
 - `code` é o `failureCode` estável (`IDomainError.code`). É o campo que o provedor usa para decidir. A `message` é só para humanos.
-- Exceção: `POST /wagering/transactions` com `REJECTED` devolve o **resultado da transação** (com `failureCode`), não esse corpo. Ver @docs/routes/submit-wager-transaction.md.
+- Exceção: `POST /wagering/transactions`, `/deposits` e `/withdrawals` com `REJECTED` devolvem o **resultado da transação** (com `failureCode`), não esse corpo. Ver @docs/routes/submit-wager-transaction.md.
 - Erros de validação do Nest (`ValidationPipe`) também saem nesse formato, com `code: "INVALID_PAYLOAD"`. Configurar `exceptionFactory` no pipe global.
 - Erro inesperado: `code: "INTERNAL_ERROR"`, sem stack trace nem detalhes internos no corpo. O detalhe vai para o log.
 
@@ -107,7 +111,7 @@ Toda resposta de erro tem o mesmo corpo:
 
 | Header | Direção | Uso |
 |---|---|---|
-| `Idempotency-Key` | request | **obrigatório** em `POST /wagering/transactions`. Fonte da verdade da idempotência |
+| `Idempotency-Key` | request | **obrigatório** em `POST /wagering/transactions`, `/wallets/:walletId/deposits` e `/withdrawals`. Fonte da verdade da idempotência (nas duas últimas, com escopo na carteira) |
 | `X-Correlation-Id` | request e response | opcional na entrada. Se não vier, o serviço gera um. Sempre devolvido na resposta e presente em todos os logs e eventos da requisição |
 | `Retry-After` | response | em `503`, segundos sugeridos até tentar de novo |
 | `Authorization` | request | `Bearer <token>`, se a autenticação for implementada |
