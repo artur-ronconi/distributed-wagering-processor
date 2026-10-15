@@ -36,3 +36,6 @@ coverage/
 .playwright-mcp/
 .claude/
 prompts/
+
+# Local flow visualizer (dev only, not part of the delivery)
+frontend/
