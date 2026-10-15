@@ -7,6 +7,8 @@
   "scripts": {
     "start": "docker compose up -d --build --wait",
     "destroy": "docker compose down --volumes --remove-orphans --rmi local",
+    "console": "bun frontends/wallet-console/server.ts",
+    "explorer": "bun frontends/flow-explorer/server.ts",
     "dev": "bun --watch src/main.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "bun test test/unit",
