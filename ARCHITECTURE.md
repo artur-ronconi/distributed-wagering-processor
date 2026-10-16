@@ -116,7 +116,7 @@ Mantive as duas. A inbox é gravada na mesma transação, então "processei" e "
 |---|---|
 | `PROCESSED`, `REJECTED`, `PENDING_REFERENCE`, replay, ou inbox já tinha o `messageId` | **ack** (resultado definitivo está no banco) |
 | `INVALID_PAYLOAD`, `INVALID_AMOUNT`, `IDEMPOTENCY_CONFLICT`, `WALLET_NOT_FOUND`, mensagem malformada (nada foi gravado) | **DLQ explícita**, com o motivo em `MessageAttributes.failureCode` |
-| `TRANSIENT_FAILURE` ou erro inesperado | **sem ack**: `ChangeMessageVisibility` com backoff de 2^n s (até 5 min). Depois de `maxReceiveCount = 5`, a redrive policy manda para a DLQ |
+| `TRANSIENT_FAILURE` ou erro inesperado | **sem ack**: `ChangeMessageVisibility` com backoff de 2^n s (até 5 min). Na tentativa de número `maxReceiveCount` (`SQS_MAX_RECEIVE_COUNT`, padrão 5) o consumer manda para a **DLQ explícita**, com o motivo. A redrive policy da fila, criada com o mesmo valor, é só a rede de segurança |
 
 - **Ack só depois do commit.** "Worker morto depois do commit e antes do ack" é seguro: a reentrega encontra a inbox e só dá ack (testado também com `SIGKILL` de um processo real no meio de uma rajada).
 - As mensagens de um lote são processadas em sequência, para preservar a ordem FIFO dentro do grupo. O provedor deve usar `MessageGroupId = walletId`, mas isso é otimização: a correção vem do banco.
@@ -213,10 +213,41 @@ Trade-offs:
 
 ## 15. Limitações e próximos passos
 
-- **Teste de carga** (`bun run test:load`, diferencial) ainda não implementado.
+- **O publisher da outbox é o gargalo sob carga** (seção 16): com o padrão (lote de 50 a cada 500 ms) ele escoa bem menos eventos por segundo do que a API gera, e o lag chegou a ~24 s numa rajada. Nenhum evento se perde, mas é o primeiro ajuste a fazer (`OUTBOX_BATCH_SIZE`, `OUTBOX_INTERVAL_MS`, mais instâncias).
 - **Lock da outbox durante a publicação** (seção 8). Lease seria o próximo passo se o lag crescer.
 - **`created_at` vem do relógio da instância.** A ordem do extrato é estável (keyset por `created_at, id`), mas, com relógios dessincronizados entre instâncias, "mais recente primeiro" pode ficar levemente fora de ordem. Usar `clock_timestamp()` do banco resolveria.
 - **LocalStack fixado em 4.4.0:** as imagens mais novas exigem token de conta. O comportamento do SQS real foi seguido (FIFO, redrive, visibilidade), mas não foi validado em uma conta AWS.
 - **Consumidores dos eventos** (notificação, BI) estão fora do escopo. Só a publicação é implementada.
 - **Ids de 16 caracteres** por causa do `ddd-tool-kit` (os exemplos do enunciado usam UUIDv7). Trocar exigiria um `IdValueObject` próprio.
 - **Escalabilidade de uma carteira muito quente:** o throughput por carteira é limitado pelo lock (serial por definição). Carteiras diferentes escalam horizontalmente com o número de instâncias e de conexões.
+
+## 16. Teste de carga
+
+`bun run test:load` (diferencial do OLD_README §14) roda contra a stack no ar (`bun run start`) e usa só a API pública. Não há meta de RPS: o objetivo é medir com honestidade e provar, no fim, que nada ficou inconsistente.
+
+**Metodologia.** Três partes, sequenciais, com requisições HTTP reais (`POST /wagering/transactions`, com `Idempotency-Key`):
+
+1. *Espalhada:* 200 carteiras × 20 requisições (75% `BET`, 25% `WIN`), 64 em voo, ordem embaralhada.
+2. *Carteira quente:* 1.000 `BET` na **mesma** carteira, 50 em voo (pior caso para o lock de linha).
+3. *Replays:* a mesma aposta, 50 vezes em paralelo, tem de responder `200` e debitar uma vez.
+
+Depois de cada parte o script acompanha `wagering_outbox_pending` e `wagering_outbox_lag_seconds` até a outbox esvaziar, lê `wagering_lock_conflicts_total` e, no fim, chama `POST /wallets/:id/reconciliation` em **todas** as carteiras. Ele sai com erro se alguma ficar inconsistente, se um replay duplicar o débito ou se houver erro (status fora de 2xx/422). Parâmetros: `LOAD_WALLETS`, `LOAD_REQUESTS_PER_WALLET`, `LOAD_CONCURRENCY`, `LOAD_HOT_REQUESTS`, `LOAD_HOT_CONCURRENCY`, `LOAD_BASE_URL`.
+
+**Ambiente.** WSL2 (Linux 6.18) em AMD Ryzen 5 5600X (8 threads visíveis), 9,7 GiB de RAM, Bun 1.4.3. Docker Compose com **1 instância** da app, PostgreSQL 17 e LocalStack no mesmo host, pool de 20 conexões, publisher da outbox com a configuração padrão. Cliente e servidor disputam a mesma máquina, então os números são conservadores.
+
+**Resultado** (uma execução; varia de uma máquina e de uma rodada para outra):
+
+| Cenário | Requisições | Throughput | p50 | p95 | p99 | Erros | Conflitos de lock |
+|---|---|---|---|---|---|---|---|
+| Espalhada (200 carteiras) | 4.000 | 250 req/s | 248 ms | 333 ms | 366 ms | 0% | 0 |
+| Carteira quente (1 carteira) | 1.000 | 135 req/s | 381 ms | 410 ms | 426 ms | 0% | 0 |
+
+- **Replays:** 50 pedidos idênticos em paralelo → 50 × `200`; saldo final `990.00` (um único débito).
+- **Invariante final:** 202 carteiras reconciliadas, 0 inconsistentes.
+- **Outbox lag:** após a parte 1, pior atraso de **23,8 s** (7.758 eventos pendentes no pico), esvaziada em 23 s; após a parte 2, 4,2 s (1.152 pendentes).
+
+**Leitura honesta.**
+- A carteira quente é serial por definição (o lock é por `walletId`): ~135 req/s é o teto de uma carteira nesta máquina, com latência estável e zero erro. Carteiras diferentes andam em paralelo (250 req/s com a API e o cliente dividindo a CPU).
+- O lag da outbox mostra o limite do publisher com lote de 50 a cada 500 ms: a API gera eventos mais rápido do que uma instância publica. Nada se perde (tudo foi publicado), mas quem consome os eventos os recebe com atraso. Ajustar o lote e o intervalo, ou subir mais instâncias (o `SKIP LOCKED` divide o trabalho), é o caminho. Não ajustei para o número ficar bonito.
+- Conflitos de lock = 0: o lock pessimista serializa a carteira sem esgotar retries. Os conflitos só apareceriam com o timeout de lock estourando.
+- Uma instância, uma máquina e uma execução: não prova o comportamento com 3 instâncias sob carga (isso é coberto pelos testes de concorrência, não por este experimento).

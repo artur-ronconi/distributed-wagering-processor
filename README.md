@@ -13,7 +13,7 @@
 ![MikroORM 6](https://img.shields.io/badge/MikroORM-6-2B6CB0)
 ![AWS SQS](https://img.shields.io/badge/AWS%20SQS-LocalStack-FF9900?logo=amazonsqs&logoColor=white)
 ![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
-![245 testes](https://img.shields.io/badge/testes-245%20passando-10B981)
+![248 testes](https://img.shields.io/badge/testes-248%20passando-10B981)
 
 [Em 1 minuto](#em-1-minuto) ·
 [O projeto em imagens](#o-projeto-em-imagens) ·
@@ -28,7 +28,7 @@
 
 Desafio técnico da **Jungle Gaming**. Provedores de jogos enviam transações de aposta (`BET`, `WIN`, `LOSS`, `REFUND`, `ROLLBACK`) por **HTTP** ou por **fila SQS**. O serviço aplica cada uma na carteira certa, mantém um **extrato imutável** e garante que nenhum dinheiro seja debitado duas vezes, criado do nada ou deixado negativo, mesmo com várias instâncias processando ao mesmo tempo. Como extensão, a carteira também aceita **depósito** e **saque** pelo caixa, com as mesmas garantias.
 
-| 245 | 50× | 3 | 0 | 5s | 2 |
+| 248 | 50× | 3 | 0 | 5s | 2 |
 | :---: | :---: | :---: | :---: | :---: | :---: |
 | testes automatizados passando | a mesma aposta em paralelo vira **um** débito | instâncias do serviço disputando a mesma carteira nos testes | mocks de PostgreSQL ou SQS | de espera máxima pelo lock de uma carteira, depois `503` | frontends para usar e para ver o sistema por dentro |
 
@@ -39,7 +39,7 @@ Desafio técnico da **Jungle Gaming**. Provedores de jogos enviam transações d
 
 **Distributed Wagering Processor** is a financial service (NestJS on Bun, strict TypeScript, PostgreSQL with MikroORM, AWS SQS on LocalStack) that applies wager transactions sent by game providers over HTTP or an SQS FIFO queue. It keeps wallet balances and an append-only ledger correct under duplicated, out-of-order and concurrent messages, across multiple instances.
 
-Highlights: money as exact integer cents (never floating point); a per-wallet row lock plus version-checked updates (no global lock); persistent idempotency keys with payload hashing (same key + different payload is a 409, not a replay); an inbox in the same SQL transaction as the money change and acks only after commit; a transactional outbox published with `FOR UPDATE SKIP LOCKED`; out-of-order references parked as `PENDING_REFERENCE` and retried with exponential backoff; database constraints and triggers that enforce the invariants on their own. 245 tests run against real PostgreSQL and LocalStack containers, including three real service processes competing for the same wallet and a `SIGKILL` between commit and ack.
+Highlights: money as exact integer cents (never floating point); a per-wallet row lock plus version-checked updates (no global lock); persistent idempotency keys with payload hashing (same key + different payload is a 409, not a replay); an inbox in the same SQL transaction as the money change and acks only after commit; a transactional outbox published with `FOR UPDATE SKIP LOCKED`; out-of-order references parked as `PENDING_REFERENCE` and retried with exponential backoff; database constraints and triggers that enforce the invariants on their own. 248 tests run against real PostgreSQL and LocalStack containers, including three real service processes competing for the same wallet and a `SIGKILL` between commit and ack.
 
 Two companion frontends ship with it: the **Wallet Console**, to use the system as an operator, and the **Flow Explorer**, which animates the path each request takes through the code. The rest of this README is in Portuguese.
 
@@ -316,13 +316,14 @@ Todas em [`.env.example`](.env.example) e [`src/config/app-config.ts`](src/confi
 
 Integração e concorrência rodam contra **PostgreSQL e LocalStack reais** (os containers do Compose), com banco (`wagering_test`) e filas (`*-test.fifo`) separados dos da aplicação. Nada é mockado.
 
-```bash
-bun run start               # ou só a infra: docker compose up -d postgres localstack --wait
+Cada comando de teste é **independente**: antes de rodar, ele confere se o que precisa está de pé (PostgreSQL e LocalStack; o de carga também a app), sobe só o que faltar e deixa como está o que já estiver rodando. Nada é parado no fim. Só precisa do Docker aberto.
 
-bun test                    # 108 unitários: domínio e eventos
-bun run test:integration    # 130 de integração: API, depósito e saque, persistência, mensageria, Swagger e health
+```bash
+bun test                    # 108 unitários: domínio e eventos (não usa containers)
+bun run test:integration    # 133 de integração: API, depósito e saque, persistência, mensageria, Swagger e health
 bun run test:concurrency    # 7 de concorrência: paralelismo real, 3 processos, SIGKILL + restart
 bun run test:all            # os três
+bun run test:load           # carga (opcional), sobe a stack inteira se precisar: ver ARCHITECTURE §16
 bun run typecheck
 ```
 
@@ -342,6 +343,7 @@ bun run typecheck
 | Worker morto depois do commit e antes do ack | `messaging.spec.ts` e `concurrency.spec.ts` (5/8, `SIGKILL`) |
 | `ROLLBACK`/`REFUND` antes da referência | `wager-transactions.spec.ts` e `concurrency.spec.ts` (7) |
 | Reinício com consistência final | `concurrency.spec.ts` (5/8) |
+| Carga (diferencial): throughput, p50/p95/p99, erros, conflitos, lag da outbox | [`test/load/load.ts`](test/load/load.ts), resultados em ARCHITECTURE §16 |
 | Invariante final `wallet.balance == ledger` | `expectLedgerMatchesBalances` em todos os testes que movem dinheiro |
 | Swagger completo (todas as rotas e status, com exemplos) | [`test/integration/docs/swagger.spec.ts`](test/integration/docs/swagger.spec.ts) |
 | Depósito e saque (extensão): replay, conflito, saldo insuficiente, saques paralelos | [`test/integration/api/wallet-operations.spec.ts`](test/integration/api/wallet-operations.spec.ts) |

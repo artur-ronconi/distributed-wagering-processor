@@ -13,8 +13,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "bun test test/unit",
     "test:unit": "bun test test/unit",
-    "test:integration": "bun test test/integration --timeout 120000",
-    "test:concurrency": "bun test test/concurrency --timeout 300000",
+    "test:integration": "bun test/support/ensure-infra.ts infra && bun test test/integration --timeout 120000",
+    "test:concurrency": "bun test/support/ensure-infra.ts infra && bun test test/concurrency --timeout 300000",
+    "test:load": "bun test/support/ensure-infra.ts app && bun test/load/load.ts",
     "test:all": "bun run test:unit && bun run test:integration && bun run test:concurrency",
     "migration:up": "bun src/shared/infrastructure/database/migration.cli.ts up",
     "migration:down": "bun src/shared/infrastructure/database/migration.cli.ts down"
