@@ -8,7 +8,8 @@ import { unique } from "../../support/factories";
 import { WagerTransactionsConsumer } from "../../../src/modules/wager-transaction/presentation/consumers/wager-transactions.consumer";
 import { SubmitWagerTransactionUseCase } from "../../../src/modules/wager-transaction/domain/usecases/submit-wager-transaction/submit-wager-transaction.usecase";
 import { PublishOutboxUseCase } from "../../../src/modules/messaging/domain/usecases/publish-outbox/publish-outbox.usecase";
-import type { EventPublisher, PublishableEvent } from "../../../src/modules/messaging/domain/interfaces/event-publisher.interface";
+import { EVENT_PUBLISHER, type EventPublisher, type PublishableEvent } from "../../../src/modules/messaging/domain/interfaces/event-publisher.interface";
+import type { UnitOfWork } from "../../../src/shared/interfaces/unit-of-work.interface";
 import type { Metrics } from "../../../src/shared/interfaces/metrics.interface";
 import { InboxMessageAggregate } from "../../../src/modules/messaging/domain/aggregate/aggregate-root/inbox-message/inbox-message.aggregate-root";
 import { OutboxMessageAggregate } from "../../../src/modules/messaging/domain/aggregate/aggregate-root/outbox-message/outbox-message.aggregate-root";
@@ -191,6 +192,51 @@ describe("SQS consumer (wager-transactions.fifo)", () => {
     expect(await balanceOf(app.url, wallet.id)).toBe("100.00");
   });
 
+  it("a transient failure on the last allowed attempt goes to the DLQ instead of retrying forever", async () => {
+    const wallet = await createWallet(app.url, "100.00");
+    const message = wagerMessage(wallet, { amount: "30.00" });
+    await publish(message);
+
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    const holder = db.uow.transactional(async () => {
+      await db.wallets.findByIdForUpdate({ value: wallet.id } as never);
+      await held;
+    });
+    await Bun.sleep(100);
+
+    const [received] = await sqs.receive(TEST_QUEUES.wagerTransactions, 1, 30);
+    const { maxReceiveCount } = app.config.sqsConsumer;
+    const lastAttempt = { ...received!, Attributes: { ...received!.Attributes, ApproximateReceiveCount: String(maxReceiveCount) } };
+    expect(await consumer.handle(lastAttempt)).toBe("dlq"); // lock timeout → TRANSIENT_FAILURE, limit reached
+    release();
+    await holder;
+
+    const [dead] = await drain(sqs, TEST_QUEUES.wagerTransactionsDlq);
+    expect(dead?.MessageAttributes?.failureCode?.StringValue).toBe("TRANSIENT_FAILURE");
+    expect(await drain(sqs, TEST_QUEUES.wagerTransactions)).toHaveLength(0);
+    expect(await balanceOf(app.url, wallet.id)).toBe("100.00");
+  });
+
+  it("the same providerId + externalTransactionId under another Idempotency-Key is permanent: DLQ, no retry", async () => {
+    const wallet = await createWallet(app.url, "100.00");
+    const first = wagerMessage(wallet, { amount: "10.00", externalTransactionId: "tx-reused" });
+    await publish(first);
+    const [firstReceived] = await sqs.receive(TEST_QUEUES.wagerTransactions, 1, 30);
+    expect(await consumer.handle(firstReceived!)).toBe("ack");
+
+    const second = wagerMessage(wallet, { amount: "10.00", externalTransactionId: "tx-reused" });
+    second.data.idempotencyKey = unique("another-key");
+    await publish(second);
+    const [secondReceived] = await sqs.receive(TEST_QUEUES.wagerTransactions, 1, 30);
+    expect(await consumer.handle(secondReceived!)).toBe("dlq");
+
+    const [dead] = await drain(sqs, TEST_QUEUES.wagerTransactionsDlq);
+    expect(dead?.MessageAttributes?.failureCode?.StringValue).toBe("IDEMPOTENCY_CONFLICT");
+    expect(await balanceOf(app.url, wallet.id)).toBe("90.00");
+    await expectLedgerMatchesBalances(db);
+  });
+
   it("a business rejection is acked (final result stored), not sent to the DLQ", async () => {
     const wallet = await createWallet(app.url, "10.00");
     const message = wagerMessage(wallet, { amount: "30.00" });
@@ -272,6 +318,38 @@ describe("outbox publisher", () => {
 
     expect(published).toHaveLength(40);
     expect(new Set(published).size).toBe(40);
+  });
+
+  it("process dies after publishing and before its commit: another instance publishes it again, safely", async () => {
+    const wallet = await createWallet(app.url, "100.00");
+    await submit(app.url, wallet, { amount: "10.00" });
+    const rows = await db.sql<{ id: string }>(`select "id" from "outbox_messages"`);
+    expect(rows).toHaveLength(4); // committed with the money: nothing was published yet
+    expect(await drain(sqs, TEST_QUEUES.events)).toHaveLength(0);
+
+    // instance A publishes to SQS for real, then dies before committing the "published" marks
+    const crashingUow: UnitOfWork = {
+      transactional: (work, options) =>
+        db.uow.transactional(async () => {
+          await work();
+          throw new Error("process died before the commit");
+        }, options),
+    };
+    const realPublisher = app.app.get<EventPublisher>(EVENT_PUBLISHER);
+    const instanceA = new PublishOutboxUseCase(crashingUow, db.outbox, realPublisher, noMetrics, {
+      outboxPublisher: { batchSize: 50, intervalMs: 10 },
+    });
+    await expect(instanceA.execute()).rejects.toThrow("process died");
+    expect(await db.sql(`select 1 from "outbox_messages" where "published_at" is null`)).toHaveLength(4);
+
+    // instance B takes over and publishes everything that is still pending
+    expect(await app.app.get(PublishOutboxUseCase).execute()).toBe(4);
+    expect(await db.sql(`select 1 from "outbox_messages" where "published_at" is null`)).toHaveLength(0);
+
+    // at-least-once: every event reached the queue, and a duplicate carries the same eventId
+    const delivered = (await drain(sqs, TEST_QUEUES.events)).map((m) => (JSON.parse(m.Body!) as { eventId: string }).eventId);
+    expect(new Set(delivered)).toEqual(new Set(rows.map((r) => r.id)));
+    await expectLedgerMatchesBalances(db);
   });
 
   it("a failed publish schedules a retry with backoff and succeeds later", async () => {
