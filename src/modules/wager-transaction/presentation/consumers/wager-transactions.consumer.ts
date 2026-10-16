@@ -56,7 +56,8 @@ type Verdict = "ack" | "retry" | "dlq";
  * - ack (DeleteMessage) only after the commit;
  * - business results (processed, rejected, pending, replay, duplicate) → ack;
  * - permanent errors that persisted nothing → DLQ explicitly;
- * - transient errors → no ack, visibility backoff; the redrive policy moves it to the DLQ after maxReceiveCount;
+ * - transient errors → no ack, visibility backoff; from the maxReceiveCount-th attempt on it goes to the DLQ
+ *   explicitly (the queue's redrive policy, created with the same limit, is only the safety net);
  * - SIGTERM: lets the current long poll end (it is never aborted: the server would still hand a
  *   message to the abandoned request and hide it for the visibility timeout), finishes the in-flight
  *   message and returns the visibility of the received ones not started.
@@ -157,7 +158,8 @@ class WagerTransactionsConsumer implements OnApplicationBootstrap, OnApplication
       } else {
         const code = (output.result as IDomainError).code;
         reason = code ?? FailureCode.InternalError;
-        verdict = code && PERMANENT_FAILURES.has(code) ? "dlq" : "retry";
+        const permanent = code !== undefined && PERMANENT_FAILURES.has(code);
+        verdict = permanent || receiveCount >= this.config.sqsConsumer.maxReceiveCount ? "dlq" : "retry";
       }
     }
 

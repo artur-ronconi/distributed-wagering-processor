@@ -24,6 +24,7 @@ services:
     environment:
       SERVICES: sqs
       SQS_ENDPOINT_STRATEGY: path
+      SQS_MAX_RECEIVE_COUNT: ${SQS_MAX_RECEIVE_COUNT:-5}
       AWS_DEFAULT_REGION: us-east-1
     ports:
       - "4566:4566"
@@ -46,6 +47,7 @@ services:
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
       MIGRATIONS_RUN_ON_BOOT: "true"
+      SQS_MAX_RECEIVE_COUNT: ${SQS_MAX_RECEIVE_COUNT:-5}
       LOG_LEVEL: info
     ports:
       - "3000:3000"

@@ -4,6 +4,8 @@ set -euo pipefail
 
 REGION="${AWS_DEFAULT_REGION:-us-east-1}"
 ACCOUNT="000000000000"
+# Same limit the consumer uses to send a message to the DLQ (SQS_MAX_RECEIVE_COUNT in the app).
+MAX_RECEIVE_COUNT="${SQS_MAX_RECEIVE_COUNT:-5}"
 
 create_fifo() {
   awslocal sqs create-queue --region "$REGION" --queue-name "$1" --attributes "$2" >/dev/null
@@ -17,7 +19,7 @@ for suffix in "" "-test"; do
 
   create_fifo "$dlq" '{"FifoQueue":"true","MessageRetentionPeriod":"1209600"}'
 
-  redrive="{\\\"deadLetterTargetArn\\\":\\\"arn:aws:sqs:${REGION}:${ACCOUNT}:${dlq}\\\",\\\"maxReceiveCount\\\":\\\"5\\\"}"
+  redrive="{\\\"deadLetterTargetArn\\\":\\\"arn:aws:sqs:${REGION}:${ACCOUNT}:${dlq}\\\",\\\"maxReceiveCount\\\":\\\"${MAX_RECEIVE_COUNT}\\\"}"
   create_fifo "$input" "{\"FifoQueue\":\"true\",\"VisibilityTimeout\":\"30\",\"RedrivePolicy\":\"${redrive}\"}"
 
   create_fifo "$events" '{"FifoQueue":"true"}'
